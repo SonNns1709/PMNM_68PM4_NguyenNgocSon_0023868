@@ -17,6 +17,7 @@
             $diem   = 8.5;
             echo "Sinh viên: $ho_ten | MSSV: $mssv | Điểm: $diem";
         ?>
+
     </p>
 </body>
 </html>
