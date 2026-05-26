@@ -15,5 +15,7 @@ class Home
         echo '<p>Bạn đã đăng nhập thành công vào hệ thống Quản lý Sinh Viên.</p>';
         echo '<a href="' . BASE_URL . '/authen/logout" class="btn btn-danger">Đăng xuất</a>';
         echo '</div></body></html>';
+        echo '<a href="' . BASE_URL . '/sinhvien/index"
+        class="btn btn-primary me-2">Danh sách Sinh Viên</a>';
     }
 }

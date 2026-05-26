@@ -28,5 +28,5 @@ class Middleware
     }
 }
 
-define('BASE_URL', '/PMNM_68PM4_NguyenNgocSon_0023868/QuanLySinhVien/public');
+define('BASE_URL', '/QLSV/PMNM_68PM4_NguyenNgocSon_0023868/QuanLySinhVien/public');
 
