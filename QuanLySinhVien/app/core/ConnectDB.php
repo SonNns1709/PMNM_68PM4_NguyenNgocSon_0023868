@@ -1,14 +1,16 @@
 <?php
 class ConnectDB
 {
-    private static $instance = null;
+    // Thêm ?ConnectDB: Nghĩa là biến này có thể là kiểu ConnectDB hoặc null
+    private static ?ConnectDB $instance = null;
 
-    private $conn;
+    // Thêm mysqli: Vì bạn dùng hàm mysqli_connect ở dưới
+    private mysqli $conn;
 
-    private $host     = 'localhost';
-    private $dbname   = '68PM34';
-    private $username = 'root';
-    private $password = '';
+    private string $host     = 'localhost';
+    private string $dbname   = '68PM34';
+    private string $username = 'root';
+    private string $password = '';
 
     private function __construct()
     {
@@ -26,7 +28,7 @@ class ConnectDB
         mysqli_set_charset($this->conn, 'utf8mb4');
     }
 
-    public static function getInstance()
+    public static function getInstance(): ConnectDB
     {
         if (self::$instance === null) {
             self::$instance = new ConnectDB();
@@ -34,9 +36,9 @@ class ConnectDB
         return self::$instance;
     }
 
-    public function getConnection()
+    // Khai báo thêm hàm này trả về một đối tượng mysqli
+    public function getConnection(): mysqli
     {
         return $this->conn;
     }
 }
-?>
