@@ -1,33 +1,31 @@
 <?php
 class ConnectDB
 {
-    // Thêm ?ConnectDB: Nghĩa là biến này có thể là kiểu ConnectDB hoặc null
+    // 1. Thêm ?ConnectDB: Thuộc tính tĩnh lưu chính class này hoặc mang giá trị null
     private static ?ConnectDB $instance = null;
 
-    // Thêm mysqli: Vì bạn dùng hàm mysqli_connect ở dưới
-    private mysqli $conn;
-
-    private string $host     = 'localhost';
-    private string $dbname   = '68PM34';
-    private string $username = 'root';
-    private string $password = '';
+    // 2. Thêm \PDO: Vì thuộc tính này bây giờ là một đối tượng kết nối PDO
+    private \PDO $conn;
 
     private function __construct()
     {
-        $this->conn = mysqli_connect(
-            $this->host,
-            $this->username,
-            $this->password,
-            $this->dbname
-        );
+        $host   = 'localhost';
+        $dbname = '68PM34';
+        $user   = 'root';
+        $pass   = '';
 
-        if (!$this->conn) {
-            die('Kết nối database thất bại: ' . mysqli_connect_error());
+        try {
+            $this->conn = new PDO(
+                "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
+                $user, $pass // NOSONAR
+            );
+            $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        } catch (PDOException $e) {
+            die('Kết nối thất bại: ' . $e->getMessage());
         }
-
-        mysqli_set_charset($this->conn, 'utf8mb4');
     }
 
+    // 3. Khai báo hàm này bắt buộc phải trả về một thực thể ConnectDB
     public static function getInstance(): ConnectDB
     {
         if (self::$instance === null) {
@@ -36,8 +34,8 @@ class ConnectDB
         return self::$instance;
     }
 
-    // Khai báo thêm hàm này trả về một đối tượng mysqli
-    public function getConnection(): mysqli
+    // 4. Khai báo hàm này trả về đối tượng kết nối \PDO
+    public function getConnection(): \PDO
     {
         return $this->conn;
     }

@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/ConnectDB.php';
+require_once __DIR__ . '/Controller.php';
 
 class App
 {

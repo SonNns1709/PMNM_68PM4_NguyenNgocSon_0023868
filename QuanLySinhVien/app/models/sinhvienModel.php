@@ -3,8 +3,8 @@ require_once '../app/core/ConnectDB.php';
 
 class SinhvienModel
 {
-    // 1. Sửa lỗi thuộc tính $conn ở dòng 6
-    private mysqli $conn;
+    // Đã đồng bộ sang kiểu kết nối PDO
+    private \PDO $conn;
 
     public function __construct()
     {
@@ -20,64 +20,67 @@ class SinhvienModel
                 LEFT JOIN lop l ON sv.id_lop = l.id
                 ORDER BY sv.id ASC";
 
-        $result = mysqli_query($this->conn, $sql);
-        $data   = [];
-
-        if ($result) {
-            while ($row = mysqli_fetch_assoc($result)) {
-                $data[] = $row;
-            }
-        }
-
-        return $data;
+        // Sử dụng PDO để truy vấn và lấy toàn bộ dữ liệu dưới dạng mảng kết hợp (Associative Array)
+        $stmt = $this->conn->query($sql);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
-    // 2. Sửa lỗi tham số $id (kiểu int) ở dòng 33
+    // Lấy 1 sinh viên theo ID
     public function getById(int $id): ?array
     {
-        $id  = (int) $id;
-        $sql = "SELECT * FROM sinh_vien WHERE id = $id LIMIT 1";
-        $result = mysqli_query($this->conn, $sql);
-        return mysqli_fetch_assoc($result) ?: null;
+        $sql = "SELECT * FROM sinh_vien WHERE id = :id LIMIT 1";
+        
+        // Sử dụng Prepared Statement của PDO để bảo mật
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute(['id' => $id]);
+        
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $result ?: null;
     }
 
-    // 3. Sửa lỗi tham số $data (kiểu array) ở dòng 42
-    public function create(array $data): bool|\mysqli_result
+    // Thêm sinh viên
+    public function create(array $data): bool
     {
-        $ho_ten = mysqli_real_escape_string($this->conn, $data['ho_ten']);
-        $mssv   = mysqli_real_escape_string($this->conn, $data['mssv']);
-        $email  = mysqli_real_escape_string($this->conn, $data['email']);
-        $diem   = (float) $data['diem'];
-        $id_lop = (int)   $data['id_lop'];
-
         $sql = "INSERT INTO sinh_vien (ho_ten, mssv, email, diem, id_lop)
-                VALUES ('$ho_ten','$mssv','$email',$diem,$id_lop)";
+                VALUES (:ho_ten, :mssv, :email, :diem, :id_lop)";
 
-        return mysqli_query($this->conn, $sql);
+        $stmt = $this->conn->prepare($sql);
+        
+        // PDO tự động bảo mật dữ liệu đầu vào, không cần dùng mysqli_real_escape_string nữa
+        return $stmt->execute([
+            'ho_ten' => $data['ho_ten'],
+            'mssv'   => $data['mssv'],
+            'email'  => $data['email'],
+            'diem'   => (float) $data['diem'],
+            'id_lop' => (int)   $data['id_lop']
+        ]);
     }
 
-    // 4. Sửa lỗi tham số $id và $data ở dòng 57
-    public function update(int $id, array $data): bool|\mysqli_result
+    // Cập nhật sinh viên
+    public function update(int $id, array $data): bool
     {
-        $id     = (int) $id;
-        $ho_ten = mysqli_real_escape_string($this->conn, $data['ho_ten']);
-        $email  = mysqli_real_escape_string($this->conn, $data['email']);
-        $diem   = (float) $data['diem'];
-        $id_lop = (int)   $data['id_lop'];
-
         $sql = "UPDATE sinh_vien
-                SET ho_ten='$ho_ten', email='$email',
-                    diem=$diem, id_lop=$id_lop
-                WHERE id=$id";
+                SET ho_ten = :ho_ten, email = :email,
+                    diem = :diem, id_lop = :id_lop
+                WHERE id = :id";
 
-        return mysqli_query($this->conn, $sql);
+        $stmt = $this->conn->prepare($sql);
+        
+        return $stmt->execute([
+            'id'     => $id,
+            'ho_ten' => $data['ho_ten'],
+            'email'  => $data['email'],
+            'diem'   => (float) $data['diem'],
+            'id_lop' => (int)   $data['id_lop']
+        ]);
     }
 
-    // 5. Sửa lỗi tham số $id ở dòng 74
-    public function delete(int $id): bool|\mysqli_result
+    // Xóa sinh viên
+    public function delete(int $id): bool
     {
-        $id  = (int) $id;
-        $sql = "DELETE FROM sinh_vien WHERE id=$id LIMIT 1";
-        return mysqli_query($this->conn, $sql);
+        $sql = "DELETE FROM sinh_vien WHERE id = :id LIMIT 1";
+        
+        $stmt = $this->conn->prepare($sql);
+        return $stmt->execute(['id' => $id]);
     }
 }
