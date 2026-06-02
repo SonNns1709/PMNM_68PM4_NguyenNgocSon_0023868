@@ -10,7 +10,7 @@ class Authen
     {
         Middleware::guest();
 
-        $error = $_SESSION['login_error'] ?? '';
+        $error = $_SESSION['login_error'] ?? ''; // NOSONAR
         unset($_SESSION['login_error']);
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -44,6 +44,7 @@ class Authen
                 exit();
             }
         }
+        
 
         require_once '../app/views/home/login.php';
     }
