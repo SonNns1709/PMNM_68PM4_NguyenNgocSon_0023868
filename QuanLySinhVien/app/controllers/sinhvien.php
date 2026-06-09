@@ -3,17 +3,29 @@ require_once '../app/core/Controller.php';
 
 class Sinhvien extends Controller
 {
-    // Ép kiểu trả về là void cho hàm index
-    public function index(): void
+       public function index()
     {
         Middleware::protect();
 
+        $limit  = 5;
+        $page   = isset($_GET['page'])   ? (int)   $_GET['page']   : 1;
+        $search = isset($_GET['search']) ? trim($_GET['search'])    : '';
+
+        // Đảm bảo page không âm
+        if ($page < 1) {$page = 1;}
+
+        $offset = ($page - 1) * $limit;
+
         $sinhvienModel = $this->model('sinhvienModel');
-        $sinhviens     = $sinhvienModel->getAllSinhvien();
+        $data          = $sinhvienModel->paging($limit, $offset, $search);
 
         $this->view("layout/masterlayout", [
-            'viewname'  => 'sinhvien/index',
-            'sinhviens' => $sinhviens
+            'viewname'    => 'sinhvien/index',
+            'sinhviens'   => $data['sinhviens'],
+            'totalPage'   => $data['totalpage'],
+            'currentPage' => $page,
+            'search'      => $search,
+            'limit'       => $limit
         ]);
     }
 
