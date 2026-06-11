@@ -1,4 +1,13 @@
 <?php
+/** * Khai báo biến để Intelephense nhận diện dữ liệu truyền từ Controller sang
+ * @var int $id
+ * @var string $hoten
+ * @var string $gioitinh
+ * @var string $mssv
+ */
+?>
+
+<?php
 require_once '../app/core/Model.php';
 
 class SinhvienModel extends Model
@@ -35,7 +44,11 @@ class SinhvienModel extends Model
         return $stmt->execute();
     }
 
-       public function paging($limit = 5, $offset = 0, $search = "")
+    /**
+     * Phân trang và tìm kiếm sinh viên
+     * FIX: Thêm ép kiểu dữ liệu cho tham số đầu vào và mảng trả về (Intelephense)
+     */
+    public function paging(int $limit = 5, int $offset = 0, string $search = ""): array
     {
         // ── 1. Truy vấn có search ──────────────────────────────────
         if (!empty($search)) {
@@ -78,11 +91,43 @@ class SinhvienModel extends Model
         }
 
         // ── 3. Tính tổng trang ─────────────────────────────────────
-        $totalPage = ceil($totalRecord / $limit);
+        $totalPage = (int) ceil($totalRecord / $limit);
 
         return [
             "sinhviens" => $result,
             "totalpage" => $totalPage
         ];
+    }
+
+    /**
+     * Lấy 1 sinh viên theo ID (dùng để pre-fill form Sửa)
+     * FIX: Ép kiểu int cho $id và trả về array hoặc false (Intelephense)
+     */
+    public function getById(int $id)
+    {
+        $query = "SELECT * FROM tbl_sinhviens WHERE id = :id LIMIT 1";
+        $stmt  = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Cập nhật sinh viên
+     * FIX 1: Thêm type hinting (int, string) cho toàn bộ tham số (Intelephense)
+     * FIX 2: Viết gọn câu lệnh return trực tiếp $stmt->execute() (Sửa lỗi sonarqube php:S1126)
+     */
+    public function update(int $id, string $hoten, string $gioitinh, string $mssv): bool
+    {
+        $query = "UPDATE tbl_sinhviens
+                  SET hoten = :hoten, gioitinh = :gioitinh, mssv = :mssv
+                  WHERE id = :id";
+        $stmt  = $this->conn->prepare($query);
+        $stmt->bindParam(':hoten',    $hoten);
+        $stmt->bindParam(':gioitinh', $gioitinh);
+        $stmt->bindParam(':mssv',     $mssv);
+        $stmt->bindParam(':id',       $id, PDO::PARAM_INT);
+
+        return $stmt->execute();
     }
 }

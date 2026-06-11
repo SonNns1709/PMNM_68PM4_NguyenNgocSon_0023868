@@ -23,7 +23,7 @@
                value="<?= htmlspecialchars($search) ?>">
         <button type="submit" class="btn btn-primary">Tìm</button>
         <?php if (!empty($search)): ?>
-        <a href="<?= BASE_URL ?>/sinhvien/index" class="btn btn-outline-secondary" aria-label="Xóa tìm kiếm">Xoá</a>
+        <a href="<?= BASE_URL ?>/sinhvien/index" class="btn btn-outline-secondary" aria-label="Xoá tìm kiếm">Xoá</a>
         <?php endif; ?>
     </div>
 </form>
@@ -37,12 +37,13 @@
           <th>Họ Tên</th>
           <th>Giới Tính</th>
           <th>MSSV</th>
+          <th style="width:140px">Hành Động</th>
         </tr>
       </thead>
       <tbody>
         <?php if (empty($sinhviens)): ?>
         <tr>
-          <td colspan="4" class="text-center text-muted py-4">
+          <td colspan="5" class="text-center text-muted py-4">
             <?= !empty($search)
                 ? "Không tìm thấy sinh viên phù hợp với \"" . htmlspecialchars($search) . "\""
                 : "Chưa có sinh viên nào." ?>
@@ -60,6 +61,17 @@
             </span>
           </td>
           <td><?= htmlspecialchars($sv['mssv']) ?></td>
+          <td>
+            <a href="<?= BASE_URL ?>/sinhvien/edit/<?= $sv['id'] ?>"
+              class="btn btn-warning btn-sm">
+              ✏️ Sửa
+            </a>
+            <a href="<?= BASE_URL ?>/sinhvien/delete/<?= $sv['id'] ?>"
+              class="btn btn-danger btn-sm ms-1"
+              onclick="return confirm('Chắc chắn muốn xóa <?= htmlspecialchars($sv['hoten']) ?>?')">
+              🗑️ Xóa
+            </a>
+          </td>
         </tr>
         <?php endforeach; ?>
         <?php endif; ?>
@@ -74,7 +86,7 @@
 
     <li class="page-item <?= $currentPage <= 1 ? 'disabled' : '' ?>">
       <a class="page-link"
-         aria-label="Trước (Quay lại trang cũ)"
+         aria-label="Trước, quay lại trang cũ"
          href="<?= BASE_URL ?>/sinhvien/index?page=<?= $currentPage-1 ?>&search=<?= urlencode($search) ?>">
         <span aria-hidden="true">←</span> Trước
       </a>
@@ -92,7 +104,7 @@
 
     <li class="page-item <?= $currentPage >= $totalPage ? 'disabled' : '' ?>">
       <a class="page-link"
-         aria-label="Tiếp (Chuyển sang trang mới)"
+         aria-label="Tiếp tục, sang trang mới"
          href="<?= BASE_URL ?>/sinhvien/index?page=<?= $currentPage+1 ?>&search=<?= urlencode($search) ?>">
         Tiếp <span aria-hidden="true">→</span>
       </a>
