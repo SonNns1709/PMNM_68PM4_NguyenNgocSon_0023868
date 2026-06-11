@@ -117,4 +117,15 @@ class Sinhvien extends Controller
             'error'    => $error
         ]);
     }
+
+        public function delete(int $id)
+    {
+        Middleware::protect();
+
+        $model = $this->model('sinhvienModel');
+        $model->delete($id);
+
+        header('Location: ' . BASE_URL . '/sinhvien/index');
+        exit();
+    }
 }
