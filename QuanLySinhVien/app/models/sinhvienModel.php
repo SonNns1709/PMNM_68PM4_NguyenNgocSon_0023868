@@ -48,6 +48,9 @@ class SinhvienModel extends Model
      * Thêm sinh viên mới
      * Thêm kiểu dữ liệu string cho các tham số và kiểu bool cho kết quả trả về
      */
+    /**
+     * Thêm sinh viên mới kèm theo điểm số an toàn với Transaction
+     */
     public function create(
         string $hoten,
         string $gioitinh,
@@ -55,11 +58,15 @@ class SinhvienModel extends Model
         string $nganh,
         ?int $lopId,
         string $ghiChu,
+        ?string $anhDaiDien,
         array $diems = []
     ): array {
         try {
-            $query = "INSERT INTO tbl_sinhviens(hoten, gioitinh, mssv, nganh, lop_id, ghi_chu)
-                      VALUES(:hoten, :gioitinh, :mssv, :nganh, :lop_id, :ghi_chu)";
+            // Kích hoạt Transaction để đảm bảo tính toàn vẹn dữ liệu
+            $this->conn->beginTransaction();
+
+            $query = "INSERT INTO tbl_sinhviens(hoten, gioitinh, mssv, nganh, lop_id, ghi_chu, anh_dai_dien)
+                      VALUES(:hoten, :gioitinh, :mssv, :nganh, :lop_id, :ghi_chu, :anh)";
             $stmt  = $this->conn->prepare($query);
             $stmt->bindParam(':hoten',    $hoten);
             $stmt->bindParam(':gioitinh', $gioitinh);
@@ -67,23 +74,32 @@ class SinhvienModel extends Model
             $stmt->bindParam(':nganh',    $nganh);
             $stmt->bindValue(':lop_id',   $lopId ?: null, PDO::PARAM_INT);
             $stmt->bindParam(':ghi_chu',  $ghiChu);
+            $stmt->bindParam(':anh',      $anhDaiDien);
             $stmt->execute();
 
+            // Lấy ID sinh viên vừa tạo
             $svId = $this->conn->lastInsertId();
 
-            if (!empty($diems)) {
+            // Chỉ chèn điểm nếu mảng điểm thực sự có dữ liệu hợp lệ
+            if (!empty($diems) && $svId) {
+                $qD = "INSERT INTO tbl_diems
+                           (sinhvien_id, monhoc_id,
+                            diem_chuyen_can, diem_giua_ky,
+                            diem_cuoi_ky, diem_tong_ket)
+                       VALUES(:sv, :mh, :cc, :gk, :ck, :tk)";
+                $sD = $this->conn->prepare($qD);
+
                 foreach ($diems as $monhocId => $d) {
+                    // Kiểm tra nếu ô điểm trống hoàn toàn thì bỏ qua không chèn dữ liệu thừa
+                    if (!isset($d['cc']) && !isset($d['gk']) && !isset($d['ck'])) {
+                        continue;
+                    }
+
                     $cc = (float)($d['cc'] ?? 0);
                     $gk = (float)($d['gk'] ?? 0);
                     $ck = (float)($d['ck'] ?? 0);
                     $tk = round($cc * 0.1 + $gk * 0.3 + $ck * 0.6, 2);
 
-                    $qD = "INSERT INTO tbl_diems
-                               (sinhvien_id, monhoc_id,
-                                diem_chuyen_can, diem_giua_ky,
-                                diem_cuoi_ky, diem_tong_ket)
-                           VALUES(:sv, :mh, :cc, :gk, :ck, :tk)";
-                    $sD = $this->conn->prepare($qD);
                     $sD->bindValue(':sv', $svId,     PDO::PARAM_INT);
                     $sD->bindValue(':mh', $monhocId, PDO::PARAM_INT);
                     $sD->bindValue(':cc', $cc);
@@ -93,9 +109,17 @@ class SinhvienModel extends Model
                     $sD->execute();
                 }
             }
+
+            // Xác nhận hoàn thành lưu toàn bộ dữ liệu vào DB
+            $this->conn->commit();
             return ['success' => true];
 
         } catch (PDOException $e) {
+            // Nếu có bất kỳ lỗi nào xảy ra, quay ngược trạng thái dữ liệu (Rollback)
+            if ($this->conn->inTransaction()) {
+                $this->conn->rollBack();
+            }
+            
             if ($e->getCode() === '23000') {
                 return ['success' => false, 'error' => $this->parseDuplicateError($e)];
             }
@@ -108,84 +132,101 @@ class SinhvienModel extends Model
      * FIX 1: Thêm tham số $lop nhận giá trị lọc lớp từ bộ lọc điều hướng
      * FIX 2: Bổ sung LEFT JOIN tbl_lops l để lấy thông tin hiển thị cột Lớp học
      */
-    public function paging($limit = 5, $offset = 0, string $search = "", string $xepLoai = "", string $nganh = "", string $lop = ""): array
-    {
-        // Subquery tính GPA có trọng số tín chỉ
-        $gpaSub = "(SELECT ROUND(
-                        SUM(d2.diem_tong_ket * m2.so_tin_chi) / SUM(m2.so_tin_chi), 2
-                    )
-                    FROM tbl_diems d2
-                    LEFT JOIN tbl_monhocs m2 ON d2.monhoc_id = m2.id
-                    WHERE d2.sinhvien_id = sv.id)";
+    public function paging($limit = 5, $offset = 0, string $search = "", string $xepLoai = "", string $nganh = "", string $lop = "", string $sortBy = "id", string $sortDir = "ASC"): array
+{
+    // Subquery tính GPA có trọng số tín chỉ
+    $gpaSub = "(SELECT ROUND(
+                    SUM(d2.diem_tong_ket * m2.so_tin_chi) / SUM(m2.so_tin_chi), 2
+                )
+                FROM tbl_diems d2
+                LEFT JOIN tbl_monhocs m2 ON d2.monhoc_id = m2.id
+                WHERE d2.sinhvien_id = sv.id)";
 
-        // Xây dựng điều kiện WHERE
-        $conditions = [];
-        $bindParams = [];
+    // Xây dựng điều kiện WHERE
+    $conditions = [];
+    $bindParams = [];
 
-        if (!empty($search)) {
-            $conditions[] = "(sv.hoten LIKE :search OR sv.mssv LIKE :search)";
-            $bindParams[':search'] = '%' . $search . '%';
-        }
-
-        if (!empty($xepLoai)) {
-            $gpaCond = $gpaSub;
-            $xepLoaiMap = [
-                'xuat_sac'   => "$gpaCond >= 8.5",
-                'gioi'       => "$gpaCond >= 7.0 AND $gpaCond < 8.5",
-                'kha'        => "$gpaCond >= 5.5 AND $gpaCond < 7.0",
-                'trung_binh' => "$gpaCond >= 4.0 AND $gpaCond < 5.5",
-                'yeu'        => "$gpaCond < 4.0",
-            ];
-            if (isset($xepLoaiMap[$xepLoai])) {
-                $conditions[] = $xepLoaiMap[$xepLoai];
-            }
-        }
-
-        if (!empty($nganh)) {
-            $conditions[] = "sv.nganh = :nganh";
-            $bindParams[':nganh'] = $nganh;
-        }
-
-        // FIX LỖI BỘ LỌC: Nếu có chọn lớp cụ thể, lọc theo ID của lớp
-        if (!empty($lop)) {
-            $conditions[] = "sv.lop_id = :lop";
-            $bindParams[':lop'] = (int)$lop;
-        }
-
-        $where = !empty($conditions) ? 'WHERE ' . implode(' AND ', $conditions) : '';
-
-        // FIX LỖI HIỂN THỊ DANH SÁCH: Thực hiện LEFT JOIN để lấy thông tin ma_lop và nganh (lop_nganh) từ bảng lớp
-        $query = "SELECT sv.*, $gpaSub AS gpa, l.ma_lop, l.nganh AS lop_nganh
-                  FROM tbl_sinhviens sv
-                  LEFT JOIN tbl_lops l ON sv.lop_id = l.id
-                  $where
-                  ORDER BY sv.id ASC
-                  LIMIT :limit OFFSET :offset";
-
-        $stmt = $this->conn->prepare($query);
-        foreach ($bindParams as $key => $val) {
-            $stmt->bindValue($key, $val);
-        }
-        $stmt->bindValue(':limit',  $limit,  PDO::PARAM_INT);
-        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-        $stmt->execute();
-        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Đếm tổng bản ghi tương ứng bộ lọc
-        $countStmt = $this->conn->prepare(
-            "SELECT COUNT(*) FROM tbl_sinhviens sv $where"
-        );
-        foreach ($bindParams as $key => $val) {
-            $countStmt->bindValue($key, $val);
-        }
-        $countStmt->execute();
-        $totalRecord = $countStmt->fetchColumn();
-
-        return [
-            "sinhviens" => $result,
-            "totalpage" => $totalRecord > 0 ? ceil($totalRecord / $limit) : 1
-        ];
+    if (!empty($search)) {
+        $conditions[] = "(sv.hoten LIKE :search OR sv.mssv LIKE :search)";
+        $bindParams[':search'] = '%' . $search . '%';
     }
+
+    if (!empty($xepLoai)) {
+        $gpaCond = $gpaSub;
+        $xepLoaiMap = [
+            'xuat_sac'   => "$gpaCond >= 8.5",
+            'gioi'       => "$gpaCond >= 7.0 AND $gpaCond < 8.5",
+            'kha'        => "$gpaCond >= 5.5 AND $gpaCond < 7.0",
+            'trung_binh' => "$gpaCond >= 4.0 AND $gpaCond < 5.5",
+            'yeu'        => "$gpaCond < 4.0",
+        ];
+        if (isset($xepLoaiMap[$xepLoai])) {
+            $conditions[] = $xepLoaiMap[$xepLoai];
+        }
+    }
+
+    if (!empty($nganh)) {
+        $conditions[] = "sv.nganh = :nganh";
+        $bindParams[':nganh'] = $nganh;
+    }
+
+    // FIX LỖI BỘ LỌC: Nếu có chọn lớp cụ thể, lọc theo ID của lớp
+    if (!empty($lop)) {
+        $conditions[] = "sv.lop_id = :lop";
+        $bindParams[':lop'] = (int)$lop;
+    }
+
+    $where = !empty($conditions) ? 'WHERE ' . implode(' AND ', $conditions) : '';
+
+    // ==========================================
+    // FIX SONARQUBE S3776: TÁCH BIỆT MẢNG ÁNH XẠ ĐỂ GIẢM COGNITIVE COMPLEXITY
+    // ==========================================
+    $direction = strtoupper($sortDir) === 'DESC' ? 'DESC' : 'ASC';
+
+    // Ánh xạ trực tiếp quy tắc SQL tương ứng với từng cột, triệt tiêu hoàn toàn câu lệnh if/else phức tạp
+    $sortMapping = [
+        'hoten' => "SUBSTRING_INDEX(TRIM(sv.hoten), ' ', -1) {$direction}, sv.hoten {$direction}",
+        'mssv'  => "sv.mssv {$direction}",
+        'gpa'   => "gpa {$direction}"
+    ];
+
+    // Nếu không khớp với cấu hình, mặc định sắp xếp theo mã ID tăng dần
+    $orderBy = $sortMapping[$sortBy] ?? "sv.id ASC";
+    // ==========================================
+
+    // Thực hiện LEFT JOIN lấy thông tin ma_lop và nganh (lop_nganh) từ bảng lớp
+    $query = "SELECT sv.*, $gpaSub AS gpa, l.ma_lop, l.nganh AS lop_nganh
+              FROM tbl_sinhviens sv
+              LEFT JOIN tbl_lops l ON sv.lop_id = l.id
+              $where
+              ORDER BY {$orderBy}
+              LIMIT :limit OFFSET :offset";
+
+    $stmt = $this->conn->prepare($query);
+    foreach ($bindParams as $key => $val) {
+        $stmt->bindValue($key, $val);
+    }
+    $stmt->bindValue(':limit',  $limit,  PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $stmt->execute();
+    $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Đếm tổng bản ghi tương ứng bộ lọc
+    $countStmt = $this->conn->prepare(
+        "SELECT COUNT(*) FROM tbl_sinhviens sv $where"
+    );
+    foreach ($bindParams as $key => $val) {
+        $countStmt->bindValue($key, $val);
+    }
+    $countStmt->execute();
+    $totalRecord = $countStmt->fetchColumn();
+
+    return [
+        "sinhviens"   => $result,
+        "totalpage"   => $totalRecord > 0 ? ceil($totalRecord / $limit) : 1,
+        "totalrecord" => (int) $totalRecord
+    ];
+}
 
     /**
      * Lấy 1 sinh viên theo ID (dùng để pre-fill form Sửa)
@@ -213,12 +254,13 @@ class SinhvienModel extends Model
         string $nganh,
         ?int $lopId,
         string $ghiChu,
+        ?string $anhDaiDien,
         array $diems = []
     ): array {
         try {
             $query = "UPDATE tbl_sinhviens
                       SET hoten=:hoten, gioitinh=:gioitinh, mssv=:mssv,
-                          nganh=:nganh, lop_id=:lop_id, ghi_chu=:ghi_chu
+                          nganh=:nganh, lop_id=:lop_id, ghi_chu=:ghi_chu, anh_dai_dien=:anh
                       WHERE id=:id";
             $stmt  = $this->conn->prepare($query);
             $stmt->bindParam(':hoten',    $hoten);
@@ -227,6 +269,7 @@ class SinhvienModel extends Model
             $stmt->bindParam(':nganh',    $nganh);
             $stmt->bindValue(':lop_id',   $lopId ?: null, PDO::PARAM_INT);
             $stmt->bindParam(':ghi_chu',  $ghiChu);
+            $stmt->bindParam(':anh',      $anhDaiDien);
             $stmt->bindParam(':id',       $id, PDO::PARAM_INT);
             $stmt->execute();
 

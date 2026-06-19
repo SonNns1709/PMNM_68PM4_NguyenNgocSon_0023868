@@ -27,7 +27,10 @@
     </div>
     <?php endif; ?>
 
-    <form method="POST" action="<?= BASE_URL ?>/sinhvien/create" id="formCreate">
+    <form method="POST"
+      action="<?=BASE_URL?>/sinhvien/create"
+      enctype="multipart/form-data"
+      id="formCreate">
 
      <div class="row g-3 mb-4">
       <div class="col-md-6">
@@ -71,11 +74,18 @@
             <?php endforeach; ?>
         </select>
         </div>
+
+        <div class="col-md-6">
+            <label for="anh_dai_dien" class="form-label fw-semibold">Ảnh đại diện</label>
+            <input type="file" name="anh_dai_dien" id="anh_dai_dien" class="form-control"
+                    accept="image/jpeg,image/png,image/webp">
+            <div class="form-text">JPG, PNG hoặc WEBP — tối đa 2MB</div>
+        </div>
      </div>
 
      <div class="mb-3">
         <label for="ghi_chu" class="form-label fw-semibold">Ghi chú</label>
-        <textarea name="ghi_chu" class="form-control" maxlength="100" rows="3" placeholder="Nhập ghi chú (Tối đa 100 ký tự)..."><?php echo isset($sinhvien['ghi_chu']) ? htmlspecialchars($sinhvien['ghi_chu']) : ''; ?></textarea>
+        <textarea name="ghi_chu" id="ghi_chu" class="form-control" maxlength="100" rows="3" placeholder="Nhập ghi chú (Tối đa 100 ký tự)..."><?php echo isset($sinhvien['ghi_chu']) ? htmlspecialchars($sinhvien['ghi_chu']) : ''; ?></textarea>
         </div>
 
      <div class="border-top pt-4 mb-4">

@@ -12,6 +12,10 @@
  * @var array $danhSachLop
  * @var string $sortBy
  * @var string $sortDir
+ * @var int $totalRecord
+ * @var int $recordStart
+ * @var int $recordEnd
+ * @var array $allowedLimits
  */
 ?>
 
@@ -36,6 +40,37 @@ function getXepLoai(?float $gpa): array {
     }
 
     return ['text' => 'Yếu', 'class' => 'danger-subtle text-danger', 'icon' => 'bi-exclamation-triangle-fill'];
+}
+?>
+
+<?php
+function sortLink(string $col, string $label, array $filterParams): string {
+    $sortBy  = $filterParams['sortBy'] ?? 'id';
+    $sortDir = $filterParams['sortDir'] ?? 'ASC';
+    
+    $isCurrentSort = ($sortBy === $col);
+    $isAscending   = (strtoupper($sortDir) === 'ASC');
+    
+    $newDir = ($isCurrentSort && $isAscending) ? 'DESC' : 'ASC';
+    
+    $params = [
+        'page'    => $filterParams['currentPage'] ?? 1, // ĐẢM BẢO: Giữ nguyên số trang đang đứng khi bấm sắp xếp
+        'search'  => $filterParams['search'] ?? '',
+        'xepLoai' => $filterParams['xepLoai'] ?? '',
+        'nganh'   => $filterParams['nganh'] ?? '',
+        'lop'     => $filterParams['lop'] ?? '',
+        'sortBy'  => $col,
+        'sortDir' => $newDir
+    ];
+    
+    $qs = http_build_query($params);
+    
+    $icon = '';
+    if ($isCurrentSort) {
+        $icon = $isAscending ? ' ▲' : ' ▼';
+    }
+    
+    return '<a href="'.BASE_URL.'/sinhvien/index?'.$qs.'" class="text-black text-decoration-none">'.htmlspecialchars($label).$icon.'</a>';
 }
 ?>
 
@@ -90,26 +125,76 @@ function getXepLoai(?float $gpa): array {
   </div>
 </form>
 
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+  <div class="text-muted" style="font-size:13px">
+    <?php if ($totalRecord > 0): ?>
+    Hiển thị <strong><?= $recordStart ?>-<?= $recordEnd ?></strong>
+    trong tổng số <strong><?= $totalRecord ?></strong> bản ghi
+    <?php else: ?>
+    Không có bản ghi nào
+    <?php endif; ?>
+  </div>
+
+  <form method="GET" action="<?=BASE_URL?>/sinhvien/index" class="d-flex align-items-center gap-2">
+    <input type="hidden" name="search"  value="<?=htmlspecialchars($search)?>">
+    <input type="hidden" name="xepLoai" value="<?=htmlspecialchars($xepLoai)?>">
+    <input type="hidden" name="nganh"   value="<?=htmlspecialchars($nganh)?>">
+    <input type="hidden" name="lop"     value="<?=htmlspecialchars($lop)?>">
+    <input type="hidden" name="sortBy"  value="<?=htmlspecialchars($sortBy)?>">
+    <input type="hidden" name="sortDir" value="<?=htmlspecialchars($sortDir)?>">
+    <label for="limit" class="text-muted" style="font-size:13px">Hiển thị:</label>
+    <select name="limit" class="form-select form-select-sm" style="width:75px"
+            onchange="this.form.submit()">
+      <?php foreach($allowedLimits as $l): ?>
+      <option value="<?=$l?>" <?=$limit===$l?'selected':''?>><?=$l?></option>
+      <?php endforeach; ?>
+    </select>
+    <span class="text-muted" style="font-size:13px">/ trang</span>
+  </form>
+</div>
+
 <div class="table-responsive rounded-4 border bg-white shadow-sm mb-4">
   <table class="table table-hover align-middle mb-0">
     <thead>
-      <tr class="table-active">
-        <th class="fw-semibold py-3 ps-4" style="width: 70px">STT</th>
-        <th class="fw-semibold py-3">Họ Tên</th>
-        <th class="fw-semibold py-3" style="width: 120px">Giới Tính</th>
-        <th class="fw-semibold py-3" style="width: 140px">MSSV</th>
-        <th class="fw-semibold py-3">Chuyên Ngành</th>
-        <th class="fw-semibold py-3">Lớp Học</th>
-        <th class="fw-semibold py-3 text-center" style="width: 90px">GPA</th>
-        <th class="fw-semibold py-3" style="width: 150px">Xếp Loại</th>
-        <th class="fw-semibold py-3">Ghi chú</th>
-        <th class="fw-semibold py-3 text-center pe-4" style="width: 150px">Hành Động</th>
-      </tr>
-    </thead>
+        <tr class="table-active">
+            <th class="fw-semibold py-3 ps-4" style="width: 70px">STT</th>
+            <th class="fw-semibold py-3" style="width: 70px">Ảnh</th>
+            
+            <?php
+            // Chuẩn bị một mảng filter an toàn chứa đầy đủ trạng thái hiện tại để truyền vào sortLink
+            $currentFilters = [
+                'search'  => $search ?? '',
+                'xepLoai' => $xepLoai ?? '',
+                'nganh'   => $nganh ?? '',
+                'lop'     => $lop ?? '',
+                'sortBy'  => $sortBy ?? 'id',
+                'sortDir' => $sortDir ?? 'ASC',
+                'currentPage' => $currentPage ?? 1
+            ];
+            ?>
+            
+            <th class="fw-semibold py-3">
+                <?= sortLink('hoten', 'Họ Tên', $currentFilters) ?>
+            </th>
+            
+            <th class="fw-semibold py-3" style="width: 120px">Giới Tính</th>
+            
+            <th class="fw-semibold py-3" style="width: 140px">
+                <?= sortLink('mssv', 'MSSV', $currentFilters) ?>
+            </th>
+            
+            <th class="fw-semibold py-3">Chuyên Ngành</th>
+            <th class="fw-semibold py-3">Lớp Học</th>
+            <th class="fw-semibold py-3 text-center" style="width: 90px">GPA</th>
+            <th class="fw-semibold py-3" style="width: 150px">Xếp Loại</th>
+            <th class="fw-semibold py-3">Ghi chú</th>
+            <th class="fw-semibold py-3 text-center pe-4" style="width: 150px">Hành Động</th>
+        </tr>
+        </thead>
     <tbody class="border-top-0">
       <?php if (empty($sinhviens)): ?>
       <tr>
-        <td colspan="8" class="text-center text-muted py-5">
+        <td colspan="11" class="text-center text-muted py-5">
           <i class="bi bi-person-fill-x fs-1 d-block mb-2 text-black-50"></i>
           <?= !empty($search)
               ? "Không tìm thấy sinh viên phù hợp với từ khóa \"" . htmlspecialchars($search) . "\""
@@ -121,6 +206,30 @@ function getXepLoai(?float $gpa): array {
       <?php $stt = ($currentPage - 1) * $limit + $i + 1; ?>
       <tr>
         <td class="ps-4 py-3 text-secondary"><?= $stt ?></td>
+        <td>
+            <?php if (isset($sv['anh_dai_dien']) && trim($sv['anh_dai_dien']) !== ''): ?>
+                <img src="<?=BASE_URL?>/public/uploads/sinhviens/<?=htmlspecialchars($sv['anh_dai_dien'])?>"
+                    alt="Ảnh <?=htmlspecialchars($sv['hoten'])?>"
+                    style="width:36px; height:36px; border-radius:50%; object-fit:cover; border: 2px solid #000000;">
+            <?php else: ?>
+                <?php
+                    $parts    = explode(' ', trim($sv['hoten']));
+                    $initials = mb_strtoupper(mb_substr(end($parts), 0, 1, 'UTF-8'), 'UTF-8');
+                    
+                    // Sử dụng ID sinh viên để tạo màu cố định không đổi khi F5
+                    $beautifulColors = [
+                        '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
+                        '#6f42c1', '#fd7e14', '#e83e8c', '#20c997', '#5a5c69'
+                    ];
+                    $randomColor = $beautifulColors[$sv['id'] % count($beautifulColors)];
+                ?>
+                <div style="width:36px; height:36px; border-radius:50%; background:<?= $randomColor ?>;
+                            color:#fff; display:flex; align-items:center; justify-content:center;
+                            font-size:14px; font-weight:600;">
+                    <?= $initials ?>
+                </div>
+            <?php endif; ?>
+        </td>
         <td class="fw-medium text-dark"><?= htmlspecialchars($sv['hoten']) ?></td>
         <td>
           <span class="badge rounded-pill px-25 py-1 fw-medium <?= $sv['gioitinh'] === 'Nam' ? 'bg-info-subtle text-info' : 'bg-danger-subtle text-danger' ?>">
@@ -196,7 +305,7 @@ function getXepLoai(?float $gpa): array {
 
     <li class="page-item <?= $currentPage <= 1 ? 'disabled' : '' ?>">
       <a class="page-link rounded-3 border-0 bg-light text-secondary px-3"
-         href="<?= BASE_URL ?>/sinhvien/index?page=<?= $currentPage - 1 ?>&search=<?= urlencode($search) ?>&xepLoai=<?= urlencode($xepLoai) ?>&nganh=<?= urlencode($nganh) ?>&lop=<?= urlencode($lop) ?>">
+         href="<?= BASE_URL ?>/sinhvien/index?page=<?= $currentPage - 1 ?>&search=<?= urlencode($search) ?>&xepLoai=<?= urlencode($xepLoai) ?>&nganh=<?= urlencode($nganh) ?>&lop=<?= urlencode($lop) ?>&sortBy=<?= urlencode($sortBy) ?>&sortDir=<?= urlencode($sortDir) ?>">
          <i class="bi bi-chevron-left small"></i> Trước
       </a>
     </li>
@@ -205,7 +314,7 @@ function getXepLoai(?float $gpa): array {
       <li class="page-item <?= $i === $currentPage ? 'active' : '' ?>">
         <a class="page-link rounded-3 border-0 px-3 fw-medium mx-05 <?= $i === $currentPage ? 'shadow-sm' : 'bg-light text-dark' ?>"
           style="<?= $i === $currentPage ? 'background:#3f51b5 !important; color:#ffffff !important;' : '' ?>"
-          href="<?= BASE_URL ?>/sinhvien/index?page=<?= $i ?>&search=<?= urlencode($search) ?>&xepLoai=<?= urlencode($xepLoai) ?>&nganh=<?= urlencode($nganh) ?>&lop=<?= urlencode($lop) ?>"
+          href="<?= BASE_URL ?>/sinhvien/index?page=<?= $i ?>&search=<?= urlencode($search) ?>&xepLoai=<?= urlencode($xepLoai) ?>&nganh=<?= urlencode($nganh) ?>&lop=<?= urlencode($lop) ?>&sortBy=<?= urlencode($sortBy) ?>&sortDir=<?= urlencode($sortDir) ?>"
           aria-label="Trang <?= $i ?>" <?= $i === $currentPage ? 'aria-current="page"' : '' ?>>
           <?= $i ?>
         </a>
@@ -214,17 +323,13 @@ function getXepLoai(?float $gpa): array {
 
     <li class="page-item <?= $currentPage >= $totalPage ? 'disabled' : '' ?>">
       <a class="page-link rounded-3 border-0 bg-light text-secondary px-3"
-         href="<?= BASE_URL ?>/sinhvien/index?page=<?= $currentPage + 1 ?>&search=<?= urlencode($search) ?>&xepLoai=<?= urlencode($xepLoai) ?>&nganh=<?= urlencode($nganh) ?>&lop=<?= urlencode($lop) ?>">
+         href="<?= BASE_URL ?>/sinhvien/index?page=<?= $currentPage + 1 ?>&search=<?= urlencode($search) ?>&xepLoai=<?= urlencode($xepLoai) ?>&nganh=<?= urlencode($nganh) ?>&lop=<?= urlencode($lop) ?>&sortBy=<?= urlencode($sortBy) ?>&sortDir=<?= urlencode($sortDir) ?>">
          Tiếp <i class="bi bi-chevron-right small"></i>
       </a>
     </li>
 
   </ul>
 </nav>
-
-<div class="text-center text-secondary mt-2" style="font-size: 13px;">
-    Hiển thị trang <span class="fw-semibold text-dark"><?= $currentPage ?></span> trên tổng số <span class="fw-semibold text-dark"><?= $totalPage ?></span> trang
-</div>
 <?php endif; ?>
 
 <style>

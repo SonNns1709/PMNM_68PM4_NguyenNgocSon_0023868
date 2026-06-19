@@ -33,7 +33,7 @@
         }
     </style>
 </head>
-<body>
+<body class="d-flex flex-column min-vh-100">
 
 <nav class="navbar navbar-expand-lg sticky-top"
      style="backdrop-filter: blur(12px);
@@ -80,7 +80,7 @@
   </div>
 </nav>
 
-<div class="container mt-4">
+<div class="container mt-4 flex-grow-1">
 
 <?php if (isset($_SESSION['flash'])): ?>
 <?php

@@ -32,7 +32,9 @@
     </div>
     <?php endif; ?>
 
-    <form method="POST" action="<?= BASE_URL ?>/sinhvien/edit/<?= $sinhvien['id'] ?>">
+    <form method="POST"
+      action="<?=BASE_URL?>/sinhvien/edit/<?=$sinhvien['id']?>"
+      enctype="multipart/form-data">
 
      <h6 class="fw-bold text-secondary mb-3 d-flex align-items-center gap-2">
          <i class="bi bi-person-lines-fill"></i> Thông tin cơ bản
@@ -85,11 +87,28 @@
             <?php endforeach; ?>
         </select>
         </div>
+
+        <div class="col-md-6">
+            <label for="anh" class="form-label fw-semibold">Ảnh đại diện</label>
+
+            <?php if (!empty($sinhvien['anh_dai_dien'])): ?>
+            <div class="mb-2 d-flex align-items-center gap-2">
+                <img src="<?=BASE_URL?>public/uploads/sinhviens/<?=htmlspecialchars($sinhvien['anh_dai_dien'])?>"
+                    alt="Ảnh <?=htmlspecialchars($sinhvien['hoten'])?>"
+                    style="width:64px;height:64px;border-radius:50%;object-fit:cover">
+                <span class="text-muted" style="font-size:12px">Ảnh hiện tại</span>
+            </div>
+            <?php endif; ?>
+
+            <input type="file" name="anh_dai_dien" id="anh" class="form-control"
+                    accept="image/jpeg,image/png,image/webp">
+            <div class="form-text">Chọn ảnh mới nếu muốn thay đổi, để trống nếu giữ nguyên</div>
+        </div>
      </div>
 
      <div class="mb-3">
         <label for="ghi_chu" class="form-label fw-semibold">Ghi chú</label>
-        <textarea name="ghi_chu" class="form-control" maxlength="100" rows="3" placeholder="Nhập ghi chú (Tối đa 100 ký tự)..."><?php echo isset($sinhvien['ghi_chu']) ? htmlspecialchars($sinhvien['ghi_chu']) : ''; ?></textarea>
+        <textarea name="ghi_chu" id="ghi_chu" class="form-control" maxlength="100" rows="3" placeholder="Nhập ghi chú (Tối đa 100 ký tự)..."><?php echo isset($sinhvien['ghi_chu']) ? htmlspecialchars($sinhvien['ghi_chu']) : ''; ?></textarea>
         </div>
 
      <hr class="text-black-50 my-4">
