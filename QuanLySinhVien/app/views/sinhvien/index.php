@@ -97,8 +97,10 @@ function getXepLoai(?float $gpa): array {
         <th class="fw-semibold py-3" style="width: 120px">Giới Tính</th>
         <th class="fw-semibold py-3" style="width: 140px">MSSV</th>
         <th class="fw-semibold py-3">Chuyên Ngành</th>
+        <th class="fw-semibold py-3">Lớp Học</th>
         <th class="fw-semibold py-3 text-center" style="width: 90px">GPA</th>
         <th class="fw-semibold py-3" style="width: 150px">Xếp Loại</th>
+        <th class="fw-semibold py-3">Ghi chú</th>
         <th class="fw-semibold py-3 text-center pe-4" style="width: 150px">Hành Động</th>
       </tr>
     </thead>
@@ -129,7 +131,15 @@ function getXepLoai(?float $gpa): array {
             <?= htmlspecialchars($sv['nganh'] ?? 'Chưa xác định') ?>
           </span>
         </td>
-        
+        <td>
+          <?php if (!empty($sv['ma_lop'])): ?>
+          <span class="badge rounded-pill bg-primary-subtle text-primary px-25 py-1 fw-medium">
+            <?= htmlspecialchars($sv['ma_lop']) ?> — <?= htmlspecialchars($sv['lop_nganh'] ?? 'Chưa xác định') ?>
+          </span>
+          <?php else: ?>
+          <span class="badge rounded-pill bg-secondary-subtle text-secondary px-25 py-1 fw-medium">Chưa xếp lớp</span>
+          <?php endif; ?>
+        </td>
         <?php
             $gpa    = $sv['gpa'] !== null ? (float)$sv['gpa'] : null;
             $xl     = getXepLoai($gpa);
@@ -147,7 +157,11 @@ function getXepLoai(?float $gpa): array {
                <i class="<?= $xl['icon'] ?>" style="font-size: 11px;"></i> <?= $xl['text'] ?>
             </span>
         </td>
-        
+        <td style="max-width: 150px;">
+            <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="<?php echo htmlspecialchars($sv['ghi_chu']); ?>">
+                <?php echo !empty($sv['ghi_chu']) ? htmlspecialchars($sv['ghi_chu']) : '—'; ?>
+            </div>
+        </td>
         <td class="text-center pe-4">
             <div class="d-inline-flex gap-1">
                 <a href="<?= BASE_URL ?>/sinhvien/diem/<?= $sv['id'] ?>"

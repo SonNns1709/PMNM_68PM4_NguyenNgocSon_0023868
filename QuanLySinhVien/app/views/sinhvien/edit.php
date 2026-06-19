@@ -3,6 +3,8 @@
  * @var array $sinhvien
  * @var array $monhocs
  * @var array $diemMap
+ * @var string|null $error
+ * @var array $danhSachLop
  */
 ?>
 
@@ -70,7 +72,25 @@
         <label for="nganh">Ngành Học <span class="text-danger">*</span></label>
        </div>
       </div>
+
+      <div class="col-md-6">
+        <label for="lop_id" class="form-label fw-semibold">Lớp học</label>
+        <select name="lop_id" id="lop_id" class="form-select">
+            <option value="">-- Chưa xếp lớp --</option>
+            <?php foreach($danhSachLop as $l): ?>
+            <option value="<?=$l['id']?>"
+            <?=(string)($sinhvien['lop_id']??'')===(string)$l['id']?'selected':''?>>
+            <?=htmlspecialchars($l['ma_lop'])?> — <?=htmlspecialchars($l['nganh'])?>
+            </option>
+            <?php endforeach; ?>
+        </select>
+        </div>
      </div>
+
+     <div class="mb-3">
+        <label for="ghi_chu" class="form-label fw-semibold">Ghi chú</label>
+        <textarea name="ghi_chu" class="form-control" maxlength="100" rows="3" placeholder="Nhập ghi chú (Tối đa 100 ký tự)..."><?php echo isset($sinhvien['ghi_chu']) ? htmlspecialchars($sinhvien['ghi_chu']) : ''; ?></textarea>
+        </div>
 
      <hr class="text-black-50 my-4">
      

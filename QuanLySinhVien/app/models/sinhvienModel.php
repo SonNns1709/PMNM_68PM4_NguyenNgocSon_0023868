@@ -35,6 +35,15 @@ class SinhvienModel extends Model
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function getAllLop()
+    {
+        $stmt = $this->conn->query(
+            "SELECT * FROM tbl_lops
+             ORDER BY nien_khoa DESC, ma_nganh ASC, stt ASC"
+        );
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     /**
      * Thêm sinh viên mới
      * Thêm kiểu dữ liệu string cho các tham số và kiểu bool cho kết quả trả về

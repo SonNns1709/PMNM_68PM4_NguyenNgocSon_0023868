@@ -16,8 +16,10 @@ class Sinhvien extends Controller
         $page    = isset($_GET['page'])    ? (int)  $_GET['page']    : 1;
         $search  = isset($_GET['search'])  ? trim(  $_GET['search']) : '';
         $xepLoai = isset($_GET['xepLoai']) ? trim(  $_GET['xepLoai']) : '';
-        // 1. Nhấc biến lấy dữ liệu ngành lên trên đầu để có giá trị sử dụng
         $nganh   = isset($_GET['nganh'])   ? trim(  $_GET['nganh'])   : '';
+        $lop     = isset($_GET['lop'])     ? (int)  $_GET['lop']     : '';
+        $sortBy  = isset($_GET['sortBy'])  ? trim(  $_GET['sortBy']) : 'id';
+        $sortDir = isset($_GET['sortDir']) ? trim(  $_GET['sortDir']) : 'ASC';
 
         if ($page < 1) {
             $page = 1;
@@ -25,65 +27,67 @@ class Sinhvien extends Controller
         $offset = ($page - 1) * $limit;
 
         $sinhvienModel = $this->model('sinhvienModel');
-        
-        // 2. Lấy danh sách toàn bộ ngành để hiển thị lên bộ lọc (Filter) ở giao diện
-        $danhSachNganh = $sinhvienModel->getAllNganh();
+        $data = $sinhvienModel->paging($limit, $offset, $search, $xepLoai, $nganh, $lop, $sortBy, $sortDir);
 
-        // 3. Chạy hàm phân trang có chứa tham số $nganh để lọc chính xác dữ liệu
-        $data          = $sinhvienModel->paging($limit, $offset, $search, $xepLoai, $nganh);
-
-        // 4. Truyền dữ liệu sang View (Lúc này các biến đều đã hợp lệ và có dữ liệu)
         $this->view(self::MASTER_LAYOUT, [
-            'viewname'    => 'sinhvien/index',
-            'sinhviens'   => $data['sinhviens'],
-            'totalPage'   => $data['totalpage'],
-            'currentPage' => $page,
-            'search'      => $search,
-            'xepLoai'     => $xepLoai,
-            'limit'       => $limit,
-            'nganh'       => $nganh,          // Không còn bị lỗi Unexpected '=>' nữa
-            'danhSachNganh' => $danhSachNganh,
+            'viewname'      => 'sinhvien/index',
+            'sinhviens'     => $data['sinhviens'],
+            'totalPage'     => $data['totalpage'],
+            'currentPage'   => $page,
+            'search'        => $search,
+            'xepLoai'       => $xepLoai,
+            'nganh'         => $nganh,
+            'lop'           => $lop,
+            'sortBy'        => $sortBy,
+            'sortDir'       => $sortDir,
+            'danhSachNganh' => $sinhvienModel->getAllNganh(),
+            'danhSachLop'   => $sinhvienModel->getAllLop(),
+            'limit'         => $limit
         ]);
     }
 
-   public function create()
+    public function create()
     {
         Middleware::protect();
 
-        $model   = $this->model('sinhvienModel');
-        $monhocs = $model->getAllMonhocs();
-        $error   = '';
+        $model       = $this->model('sinhvienModel');
+        $monhocs     = $model->getAllMonhocs();
+        $danhSachLop = $model->getAllLop();
+        $error       = '';
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $hoten    = trim($_POST['hoten']    ?? '');
             $gioitinh = trim($_POST['gioitinh'] ?? '');
             $mssv     = trim($_POST['mssv']     ?? '');
             $nganh    = trim($_POST['nganh']    ?? '');
-            $lopId    = $_POST['lop_id']        ?? null; 
-            $ghiChu   = $_POST['ghi_chu']       ?? '';
+            
+            // XỬ LÝ TRIỆT ĐỂ: Kiểm tra tồn tại, loại bỏ mảng và ép về số nguyên hoặc null
+            $lopPost  = $_POST['lop_id'] ?? null;
+            $lopId    = (!empty($lopPost) && !is_array($lopPost)) ? (int)$lopPost : null;
+            
+            $ghiChu   = trim($_POST['ghi_chu']  ?? '');
             $diems    = $_POST['diems']         ?? [];
 
             if (empty($hoten) || empty($gioitinh) || empty($mssv) || empty($nganh)) {
                 $error = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
             } else {
-                // Hứng mảng trả về từ Model
                 $result = $model->create($hoten, $gioitinh, $mssv, $nganh, $lopId, $ghiChu, $diems);
-                
-                if ($result['success'] === true) {
+
+                if ($result['success']) {
                     $_SESSION['flash'] = ['type' => 'success', 'msg' => '✅ Thêm sinh viên thành công!'];
                     header(self::HEADER_LOCATION . BASE_URL . self::REDIRECT_PATH);
                     exit();
                 } else {
-                    // Lấy chính xác câu thông báo lỗi trùng dịch từ Model ra
-                    $error = $result['error'];
+                    $error = $result['error']; // Lỗi trùng MSSV lưu vào đây
                 }
             }
         }
 
         $this->view(self::MASTER_LAYOUT, [
-            'viewname' => 'sinhvien/themsv',
-            'monhocs'  => $monhocs,
-            'error'    => $error
+            'viewname'    => 'sinhvien/themsv',
+            'monhocs'     => $monhocs,
+            'danhSachLop' => $danhSachLop,
+            'error'       => $error
         ]);
     }
 
@@ -91,9 +95,10 @@ class Sinhvien extends Controller
     {
         Middleware::protect();
 
-        $model    = $this->model('sinhvienModel');
-        $sinhvien = $model->getById($id);
-        $monhocs  = $model->getAllMonhocs();
+        $model       = $this->model('sinhvienModel');
+        $sinhvien    = $model->getById($id);
+        $monhocs     = $model->getAllMonhocs();
+        $danhSachLop = $model->getAllLop();
 
         if (!$sinhvien) {
             header(self::HEADER_LOCATION . BASE_URL . self::REDIRECT_PATH);
@@ -105,7 +110,6 @@ class Sinhvien extends Controller
         foreach ($bangdiem as $d) {
             $diemMap[$d['monhoc_id']] = $d;
         }
-
         $error = '';
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -113,34 +117,40 @@ class Sinhvien extends Controller
             $gioitinh = trim($_POST['gioitinh'] ?? '');
             $mssv     = trim($_POST['mssv']     ?? '');
             $nganh    = trim($_POST['nganh']    ?? '');
-            $lopId    = $_POST['lop_id']        ?? null;
-            $ghiChu   = $_POST['ghi_chu']       ?? '';
+            
+            // XỬ LÝ TRIỆT ĐỂ cho trang sửa sinh viên
+            $lopPost  = $_POST['lop_id'] ?? null;
+            $lopId    = (!empty($lopPost) && !is_array($lopPost)) ? (int)$lopPost : null;
+            
+            $ghiChu   = trim($_POST['ghi_chu']  ?? '');
             $diems    = $_POST['diems']         ?? [];
 
             if (empty($hoten) || empty($gioitinh) || empty($mssv) || empty($nganh)) {
                 $error = 'Vui lòng điền đầy đủ thông tin!';
-                $sinhvien = array_merge($sinhvien, compact('hoten', 'gioitinh', 'mssv', 'nganh', 'lopId', 'ghiChu'));
+                $sinhvien = array_merge($sinhvien, [
+                    'hoten' => $hoten, 'gioitinh' => $gioitinh, 'mssv' => $mssv,
+                    'nganh' => $nganh, 'lop_id' => $lopId, 'ghi_chu' => $ghiChu
+                ]);
             } else {
-                // Hứng mảng trả về từ Model để kiểm tra trùng cho hàm update
                 $result = $model->update($id, $hoten, $gioitinh, $mssv, $nganh, $lopId, $ghiChu, $diems);
-                
-                if ($result['success'] === true) {
-                    $_SESSION['flash'] = ['type' => 'success', 'msg' => '💾 Cập nhật thông tin thành công!'];
+
+                if ($result['success']) {
+                    $_SESSION['flash'] = ['type' => 'success', 'msg' => '💾 Cập nhật thành công!'];
                     header(self::HEADER_LOCATION . BASE_URL . self::REDIRECT_PATH);
                     exit();
                 } else {
-                    $error = $result['error'];
-                    $sinhvien = array_merge($sinhvien, compact('hoten', 'gioitinh', 'mssv', 'nganh', 'lopId', 'ghiChu'));
+                    $error = $result['error']; // Lỗi trùng khi cập nhật lưu vào đây
                 }
             }
         }
 
         $this->view(self::MASTER_LAYOUT, [
-            'viewname' => 'sinhvien/edit',
-            'sinhvien' => $sinhvien,
-            'monhocs'  => $monhocs,
-            'diemMap'  => $diemMap,
-            'error'    => $error
+            'viewname'    => 'sinhvien/edit',
+            'sinhvien'    => $sinhvien,
+            'monhocs'     => $monhocs,
+            'diemMap'     => $diemMap,
+            'danhSachLop' => $danhSachLop,
+            'error'       => $error
         ]);
     }
 
@@ -163,7 +173,7 @@ class Sinhvien extends Controller
         $sinhvien = $model->getById($id);
 
         if (!$sinhvien) {
-            $_SESSION['flash'] = ['type'=>'warning','msg'=>'🗑️ Đã xóa sinh viên khỏi hệ thống.'];
+            $_SESSION['flash'] = ['type' => 'warning', 'msg' => '🗑️ Đã xóa sinh viên khỏi hệ thống.'];
             header(self::HEADER_LOCATION . BASE_URL . self::REDIRECT_PATH);
             exit();
         }
