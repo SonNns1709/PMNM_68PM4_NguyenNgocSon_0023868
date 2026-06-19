@@ -1,0 +1,301 @@
+/* ════════════════════════════════════════════════
+    LIGHT PSYCHOLOGY THEME — QLSV System
+    "Light is the transparency of pure reason."
+════════════════════════════════════════════════ */
+:root {
+    --lp-bg: #f7f9fc; /* Nền sáng trang nhã, giảm mỏi mắt */
+    --lp-surface: #ffffff; /* Bề mặt form, input trắng tinh khiết */
+    --lp-card: #ffffff; /* Thẻ nội dung trắng */
+    --lp-border: #dbe2ef; /* Đường viền xám xanh dịu nhẹ */
+    --lp-primary: #3f51b5; /* Xanh Indigo đại diện cho sự sâu sắc, tri thức */
+    --lp-coral: #ff6f61; /* Cam san hô ấm áp thay cho màu đỏ gai góc cũ */
+    --lp-gold: #e6a23c; /* Vàng hổ phách tĩnh tâm */
+    --lp-emerald: #2ecc71; /* Xanh ngọc lục bảo cân bằng, hy vọng */
+    --lp-text: #2c3e50; /* Chữ màu xanh đen đậm để tương phản tốt */
+    --lp-muted: #7f8c8d; /* Cảnh báo phụ màu xám trầm */
+
+    /* Giữ lại alias để không làm lỗi code cũ đang gọi biến --dp */
+    --dp-red: var(--lp-coral);
+    --dp-gold: var(--lp-gold);
+}
+
+/* Base */
+body {
+    background: var(--lp-bg) !important;
+    color: var(--lp-text) !important;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Navbar */
+.navbar {
+    background: linear-gradient(135deg, #ffffff, #f0f4f8) !important;
+    border-bottom: 2px solid var(--lp-primary) !important;
+    box-shadow: 0 4px 20px rgba(63, 81, 181, 0.1) !important;
+}
+.navbar-brand {
+    color: var(--lp-primary) !important;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+.nav-link {
+    color: var(--lp-text) !important;
+    transition: color 0.2s;
+    font-weight: 500;
+}
+.nav-link:hover {
+    color: var(--lp-primary) !important;
+}
+
+/* Cards */
+.card {
+    background: var(--lp-card) !important;
+    border: 1px solid var(--lp-border) !important;
+    color: var(--lp-text) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+}
+.card-header {
+    background-color: #fcfdfe !important;
+    border-bottom: 1px solid var(--lp-border) !important;
+    font-weight: 600;
+}
+
+/* Tables */
+.table {
+    color: var(--lp-text) !important;
+    border-color: var(--lp-border) !important;
+}
+.table > :not(caption) > * > * {
+    border-color: var(--lp-border) !important;
+}
+.table-hover > tbody > tr:hover > * {
+    background: rgba(63, 81, 181, 0.04) !important;
+    color: var(--lp-text) !important;
+}
+.table-striped > tbody > tr:nth-of-type(odd) > * {
+    background: rgba(0, 0, 0, 0.01) !important;
+    color: var(--lp-text) !important;
+}
+thead.table-primary th,
+thead.table-dark th,
+thead.table-secondary th {
+    background: linear-gradient(135deg, var(--lp-primary), #5c6bc0) !important;
+    color: #ffffff !important;
+    border-color: var(--lp-border) !important;
+}
+
+/* Forms */
+.form-control,
+.form-select {
+    background: var(--lp-surface) !important;
+    border-color: var(--lp-border) !important;
+    color: var(--lp-text) !important;
+}
+.form-control:focus,
+.form-select:focus {
+    background: var(--lp-surface) !important;
+    border-color: var(--lp-primary) !important;
+    color: var(--lp-text) !important;
+    box-shadow: 0 0 0 0.2rem rgba(63, 81, 181, 0.15) !important;
+}
+.form-control::placeholder {
+    color: var(--lp-muted) !important;
+    opacity: 0.7;
+}
+.form-label {
+    color: var(--lp-text) !important;
+    font-weight: 500;
+}
+
+/* Buttons */
+.btn-primary {
+    background: var(--lp-primary) !important;
+    border-color: var(--lp-primary) !important;
+    color: #fff !important;
+}
+.btn-success {
+    background: var(--lp-emerald) !important;
+    border-color: var(--lp-emerald) !important;
+    color: #fff !important;
+}
+.btn-danger {
+    background: var(--lp-coral) !important;
+    border-color: var(--lp-coral) !important;
+    color: #fff !important;
+}
+.btn-warning {
+    background: var(--lp-gold) !important;
+    border-color: var(--lp-gold) !important;
+    color: #fff !important;
+}
+.btn-secondary {
+    background: #95a5a6 !important;
+    border-color: #95a5a6 !important;
+    color: #fff !important;
+}
+.btn-info {
+    background: #00b4d8 !important;
+    border-color: #00b4d8 !important;
+    color: #fff !important;
+}
+.btn-outline-secondary {
+    border-color: var(--lp-border) !important;
+    color: var(--lp-text) !important;
+}
+.btn-outline-secondary:hover {
+    background-color: var(--lp-bg) !important;
+    color: var(--lp-primary) !important;
+}
+
+/* Alerts */
+.alert-success {
+    background: rgba(46, 204, 113, 0.1) !important;
+    border-color: var(--lp-emerald) !important;
+    color: #1e7e34 !important;
+}
+.alert-danger {
+    background: rgba(255, 111, 97, 0.1) !important;
+    border-color: var(--lp-coral) !important;
+    color: #bd2130 !important;
+}
+.alert-warning {
+    background: rgba(230, 162, 60, 0.1) !important;
+    border-color: var(--lp-gold) !important;
+    color: #d39e00 !important;
+}
+.btn-close {
+    filter: invert(0); /* Trở về nút đóng màu tối trên nền sáng */
+}
+
+/* Badges */
+.badge.bg-secondary {
+    background: #95a5a6 !important;
+}
+.badge.bg-primary {
+    background: var(--lp-primary) !important;
+}
+
+/* Pagination */
+.page-link {
+    background: var(--lp-card) !important;
+    border-color: var(--lp-border) !important;
+    color: var(--lp-primary) !important;
+}
+.page-link:hover {
+    background: var(--lp-primary) !important;
+    border-color: var(--lp-primary) !important;
+    color: #fff !important;
+}
+.page-item.active .page-link {
+    background: var(--lp-primary) !important;
+    border-color: var(--lp-primary) !important;
+    color: #fff !important;
+}
+.page-item.disabled .page-link {
+    background: #f1f2f6 !important;
+    color: var(--lp-muted) !important;
+}
+
+/* Misc */
+.text-muted {
+    color: var(--lp-muted) !important;
+}
+footer {
+    background: #f1f4f8 !important;
+    border-top: 1px solid var(--lp-border) !important;
+    color: var(--lp-muted) !important;
+}
+hr {
+    border-color: var(--lp-border) !important;
+}
+code {
+    color: var(--lp-primary) !important;
+    background: rgba(63, 81, 181, 0.08);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* Stat Cards — dùng trong thong_ke */
+.stat-card {
+    background: linear-gradient(135deg, var(--lp-card), #fbfcfe) !important;
+    border: 1px solid var(--lp-border) !important;
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02) !important;
+    transition:
+        transform 0.2s,
+        box-shadow 0.2s;
+}
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px rgba(63, 81, 181, 0.12) !important;
+}
+.stat-num {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--lp-primary);
+}
+.stat-label {
+    color: var(--lp-muted);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* Login page */
+.login-card {
+    background: var(--lp-card) !important;
+    border: 1px solid var(--lp-border) !important;
+    box-shadow: 0 15px 35px rgba(63, 81, 181, 0.08) !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: var(--lp-bg);
+}
+::-webkit-scrollbar-thumb {
+    background: #bccee4;
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--lp-primary);
+}
+
+/* Input group */
+.input-group-text {
+    background: #f1f4f8 !important;
+    border-color: var(--lp-border) !important;
+    color: var(--lp-text) !important;
+}
+
+/* Login page background */
+body.login-page {
+    background: radial-gradient(
+        ellipse at top,
+        #eef2f7,
+        var(--lp-bg)
+    ) !important;
+}
+
+/* Ép buộc hiển thị icon dropdown cho các ô select trong thanh tìm kiếm */
+.input-group .form-select {
+    appearance: none !important; /* Xoá bỏ định dạng mặc định lỗi thời của trình duyệt */
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+
+    /* Nhúng trực tiếp SVG hình mũi tên Dropdown chuẩn của Bootstrap 5 */
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 12px center !important; /* Đặt vị trí icon cách lề phải 12px */
+    background-size: 16px 12px !important; /* Định kích cỡ icon vừa vặn */
+    padding-right: 36px !important; /* Đẩy chữ qua trái để không đè lên mũi tên */
+}
+
+/* Đảm bảo khi ghép các ô lại với nhau, đường viền phân tách sắc nét */
+.input-group > .form-select:not(:last-child) {
+    border-right: 1px solid #dee2e6 !important;
+}

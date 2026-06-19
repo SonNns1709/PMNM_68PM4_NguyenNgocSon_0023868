@@ -3,43 +3,108 @@ require_once '../app/core/Controller.php';
 
 class Sinhvien extends Controller
 {
-    // FIX SONARQUBE (php:S1192): Định nghĩa các hằng số để tránh lặp lại chuỗi ký tự
+    // Định nghĩa các hằng số để tránh trùng lặp chuỗi (Fix SonarQube S1192)
     private const MASTER_LAYOUT = "layout/masterlayout";
-    private const REDIRECT_INDEX = 'Location: ' . BASE_URL . '/sinhvien/index';
+    private const REDIRECT_PATH = '/sinhvien/index';
+    private const HEADER_LOCATION = 'Location: ';
 
-    public function index(): void
+    public function index()
     {
         Middleware::protect();
 
-        $limit  = 5;
-        $page   = isset($_GET['page'])   ? (int)   $_GET['page']   : 1;
-        $search = isset($_GET['search']) ? trim($_GET['search'])    : '';
+        $limit   = 5;
+        $page    = isset($_GET['page'])    ? (int)  $_GET['page']    : 1;
+        $search  = isset($_GET['search'])  ? trim(  $_GET['search']) : '';
+        $xepLoai = isset($_GET['xepLoai']) ? trim(  $_GET['xepLoai']) : '';
+        // 1. Nhấc biến lấy dữ liệu ngành lên trên đầu để có giá trị sử dụng
+        $nganh   = isset($_GET['nganh'])   ? trim(  $_GET['nganh'])   : '';
 
-        // FIX SONARQUBE (php:S121): Viết lại cấu trúc block if chuẩn chỉnh đầy đủ xuống dòng
         if ($page < 1) {
             $page = 1;
         }
-
         $offset = ($page - 1) * $limit;
 
         $sinhvienModel = $this->model('sinhvienModel');
-        $data          = $sinhvienModel->paging($limit, $offset, $search);
+        
+        // 2. Lấy danh sách toàn bộ ngành để hiển thị lên bộ lọc (Filter) ở giao diện
+        $danhSachNganh = $sinhvienModel->getAllNganh();
 
-        // FIX SONARQUBE: Thay chuỗi "layout/masterlayout" bằng hằng số self::MASTER_LAYOUT
+        // 3. Chạy hàm phân trang có chứa tham số $nganh để lọc chính xác dữ liệu
+        $data          = $sinhvienModel->paging($limit, $offset, $search, $xepLoai, $nganh);
+
+        // 4. Truyền dữ liệu sang View (Lúc này các biến đều đã hợp lệ và có dữ liệu)
         $this->view(self::MASTER_LAYOUT, [
             'viewname'    => 'sinhvien/index',
             'sinhviens'   => $data['sinhviens'],
             'totalPage'   => $data['totalpage'],
             'currentPage' => $page,
             'search'      => $search,
-            'limit'       => $limit
+            'xepLoai'     => $xepLoai,
+            'limit'       => $limit,
+            'nganh'       => $nganh,          // Không còn bị lỗi Unexpected '=>' nữa
+            'danhSachNganh' => $danhSachNganh,
         ]);
     }
 
-    // Ép kiểu trả về là void cho hàm create
-    public function create(): void
+   public function create()
     {
         Middleware::protect();
+
+        $model   = $this->model('sinhvienModel');
+        $monhocs = $model->getAllMonhocs();
+        $error   = '';
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $hoten    = trim($_POST['hoten']    ?? '');
+            $gioitinh = trim($_POST['gioitinh'] ?? '');
+            $mssv     = trim($_POST['mssv']     ?? '');
+            $nganh    = trim($_POST['nganh']    ?? '');
+            $lopId    = $_POST['lop_id']        ?? null; 
+            $ghiChu   = $_POST['ghi_chu']       ?? '';
+            $diems    = $_POST['diems']         ?? [];
+
+            if (empty($hoten) || empty($gioitinh) || empty($mssv) || empty($nganh)) {
+                $error = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
+            } else {
+                // Hứng mảng trả về từ Model
+                $result = $model->create($hoten, $gioitinh, $mssv, $nganh, $lopId, $ghiChu, $diems);
+                
+                if ($result['success'] === true) {
+                    $_SESSION['flash'] = ['type' => 'success', 'msg' => '✅ Thêm sinh viên thành công!'];
+                    header(self::HEADER_LOCATION . BASE_URL . self::REDIRECT_PATH);
+                    exit();
+                } else {
+                    // Lấy chính xác câu thông báo lỗi trùng dịch từ Model ra
+                    $error = $result['error'];
+                }
+            }
+        }
+
+        $this->view(self::MASTER_LAYOUT, [
+            'viewname' => 'sinhvien/themsv',
+            'monhocs'  => $monhocs,
+            'error'    => $error
+        ]);
+    }
+
+    public function edit(int $id)
+    {
+        Middleware::protect();
+
+        $model    = $this->model('sinhvienModel');
+        $sinhvien = $model->getById($id);
+        $monhocs  = $model->getAllMonhocs();
+
+        if (!$sinhvien) {
+            header(self::HEADER_LOCATION . BASE_URL . self::REDIRECT_PATH);
+            exit();
+        }
+
+        $bangdiem = $model->getBangDiemBySinhvienId($id);
+        $diemMap  = [];
+        foreach ($bangdiem as $d) {
+            $diemMap[$d['monhoc_id']] = $d;
+        }
 
         $error = '';
 
@@ -47,85 +112,77 @@ class Sinhvien extends Controller
             $hoten    = trim($_POST['hoten']    ?? '');
             $gioitinh = trim($_POST['gioitinh'] ?? '');
             $mssv     = trim($_POST['mssv']     ?? '');
+            $nganh    = trim($_POST['nganh']    ?? '');
+            $lopId    = $_POST['lop_id']        ?? null;
+            $ghiChu   = $_POST['ghi_chu']       ?? '';
+            $diems    = $_POST['diems']         ?? [];
 
-            if (empty($hoten) || empty($gioitinh) || empty($mssv)) {
+            if (empty($hoten) || empty($gioitinh) || empty($mssv) || empty($nganh)) {
                 $error = 'Vui lòng điền đầy đủ thông tin!';
+                $sinhvien = array_merge($sinhvien, compact('hoten', 'gioitinh', 'mssv', 'nganh', 'lopId', 'ghiChu'));
             } else {
-                $model = $this->model('sinhvienModel');
-                if ($model->create($hoten, $gioitinh, $mssv)) {
-                    // FIX SONARQUBE: Thay chuỗi redirect bằng hằng số self::REDIRECT_INDEX
-                    header(self::REDIRECT_INDEX);
+                // Hứng mảng trả về từ Model để kiểm tra trùng cho hàm update
+                $result = $model->update($id, $hoten, $gioitinh, $mssv, $nganh, $lopId, $ghiChu, $diems);
+                
+                if ($result['success'] === true) {
+                    $_SESSION['flash'] = ['type' => 'success', 'msg' => '💾 Cập nhật thông tin thành công!'];
+                    header(self::HEADER_LOCATION . BASE_URL . self::REDIRECT_PATH);
                     exit();
                 } else {
-                    $error = 'Thêm thất bại, MSSV có thể đã tồn tại!';
+                    $error = $result['error'];
+                    $sinhvien = array_merge($sinhvien, compact('hoten', 'gioitinh', 'mssv', 'nganh', 'lopId', 'ghiChu'));
                 }
             }
         }
 
-        // FIX SONARQUBE: Thay chuỗi "layout/masterlayout" bằng hằng số self::MASTER_LAYOUT
-        $this->view(self::MASTER_LAYOUT, [
-            'viewname' => 'sinhvien/themsv',
-            'error'    => $error
-        ]);
-    }
-
-    /**
-     * Cập nhật sinh viên
-     * FIX INTELEPHENSE (P1132): Thêm type hint `int` cho biến $id
-     */
-    public function edit(int $id): void
-    {
-        Middleware::protect();
-
-        $model   = $this->model('sinhvienModel');
-        $error   = '';
-        $sinhvien = $model->getById($id);
-
-        // Nếu ID không tồn tại → về danh sách
-        if (!$sinhvien) {
-            // FIX SONARQUBE: Thay chuỗi redirect bằng hằng số self::REDIRECT_INDEX
-            header(self::REDIRECT_INDEX);
-            exit();
-        }
-
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $hoten    = trim($_POST['hoten']    ?? '');
-            $gioitinh = trim($_POST['gioitinh'] ?? '');
-            $mssv     = trim($_POST['mssv']     ?? '');
-
-            if (empty($hoten) || empty($gioitinh) || empty($mssv)) {
-                $error = 'Vui lòng điền đầy đủ thông tin!';
-                // Giữ lại dữ liệu người dùng vừa nhập
-                $sinhvien['hoten']    = $hoten;
-                $sinhvien['gioitinh'] = $gioitinh;
-                $sinhvien['mssv']     = $mssv;
-            } else {
-                if ($model->update($id, $hoten, $gioitinh, $mssv)) {
-                    // FIX SONARQUBE: Thay chuỗi redirect bằng hằng số self::REDIRECT_INDEX
-                    header(self::REDIRECT_INDEX);
-                    exit();
-                } else {
-                    $error = 'Cập nhật thất bại, MSSV có thể đã tồn tại!';
-                }
-            }
-        }
-
-        // FIX SONARQUBE: Thay chuỗi "layout/masterlayout" bằng hằng số self::MASTER_LAYOUT
         $this->view(self::MASTER_LAYOUT, [
             'viewname' => 'sinhvien/edit',
             'sinhvien' => $sinhvien,
+            'monhocs'  => $monhocs,
+            'diemMap'  => $diemMap,
             'error'    => $error
         ]);
     }
 
-        public function delete(int $id)
+    public function delete(int $id): void
     {
         Middleware::protect();
 
         $model = $this->model('sinhvienModel');
         $model->delete($id);
 
-        header('Location: ' . BASE_URL . '/sinhvien/index');
+        header(self::HEADER_LOCATION . BASE_URL . self::REDIRECT_PATH);
         exit();
+    }
+
+    public function diem(int $id): void
+    {
+        Middleware::protect();
+
+        $model    = $this->model('sinhvienModel');
+        $sinhvien = $model->getById($id);
+
+        if (!$sinhvien) {
+            $_SESSION['flash'] = ['type'=>'warning','msg'=>'🗑️ Đã xóa sinh viên khỏi hệ thống.'];
+            header(self::HEADER_LOCATION . BASE_URL . self::REDIRECT_PATH);
+            exit();
+        }
+
+        $bangdiem = $model->getBangDiemBySinhvienId($id);
+
+        $tongTC = 0;
+        $tongDiem = 0;
+        foreach ($bangdiem as $mon) {
+            $tongTC   += $mon['so_tin_chi'];
+            $tongDiem += $mon['diem_tong_ket'] * $mon['so_tin_chi'];
+        }
+        $gpa = $tongTC > 0 ? round($tongDiem / $tongTC, 2) : null;
+
+        $this->view(self::MASTER_LAYOUT, [
+            'viewname'  => 'sinhvien/diem',
+            'sinhvien'  => $sinhvien,
+            'bangdiem'  => $bangdiem,
+            'gpa'       => $gpa
+        ]);
     }
 }

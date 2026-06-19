@@ -1,23 +1,21 @@
 <?php
+require_once __DIR__ . '/../config.php'; // nạp config trước
+
 class ConnectDB
 {
-    // 1. Thêm ?ConnectDB: Thuộc tính tĩnh lưu chính class này hoặc mang giá trị null
-    private static ?ConnectDB $instance = null;
-
-    // 2. Thêm \PDO: Vì thuộc tính này bây giờ là một đối tượng kết nối PDO
-    private \PDO $conn;
+    // Đã thêm kiểu dữ liệu: ?self (có thể là chính nó hoặc null)
+    private static ?self $instance = null;
+    
+    // Đã thêm kiểu dữ liệu: PDO
+    private PDO $conn;
 
     private function __construct()
     {
-        $host   = 'localhost';
-        $dbname = '68PM34';
-        $user   = 'root';
-        $pass   = '';
-
         try {
             $this->conn = new PDO(
-                "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
-                $user, $pass // NOSONAR
+                "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET,
+                DB_USER,
+                DB_PASS
             );
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         } catch (PDOException $e) {
@@ -25,8 +23,8 @@ class ConnectDB
         }
     }
 
-    // 3. Khai báo hàm này bắt buộc phải trả về một thực thể ConnectDB
-    public static function getInstance(): ConnectDB
+    // Tiện tay thêm luôn kiểu dữ liệu trả về cho hàm (return type hint) để code chuẩn chỉnh hơn
+    public static function getInstance(): self
     {
         if (self::$instance === null) {
             self::$instance = new ConnectDB();
@@ -34,9 +32,8 @@ class ConnectDB
         return self::$instance;
     }
 
-    // 4. Khai báo hàm này trả về đối tượng kết nối \PDO
-    public function getConnection(): \PDO
-    {
+    // Thêm kiểu trả về là PDO cho hàm này
+    public function getConnection(): PDO {
         return $this->conn;
     }
 }

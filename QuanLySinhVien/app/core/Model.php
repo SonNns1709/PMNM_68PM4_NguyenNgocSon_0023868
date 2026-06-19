@@ -8,5 +8,6 @@ class Model
     public function __construct()
     {
         $this->conn = ConnectDB::getInstance()->getConnection();
+        $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
 }
