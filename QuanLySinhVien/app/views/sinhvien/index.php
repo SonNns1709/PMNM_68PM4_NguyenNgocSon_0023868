@@ -8,6 +8,10 @@
  * @var string $xepLoai
  * @var string $nganh
  * @var array $danhSachNganh
+ * @var string $lop
+ * @var array $danhSachLop
+ * @var string $sortBy
+ * @var string $sortDir
  */
 ?>
 
@@ -44,48 +48,46 @@ function getXepLoai(?float $gpa): array {
     </a>
 </div>
 
-<form method="GET" action="<?= BASE_URL ?>/sinhvien/index" class="mb-4">
-    <input type="hidden" name="url" value="sinhvien/index">
-    <div class="row g-2 align-items-center">
-        
-        <div class="col-12 col-md-4">
-            <div class="input-group border rounded-3 overflow-hidden bg-white">
-                <span class="input-group-text bg-transparent border-0 text-secondary ps-3"><i class="bi bi-search"></i></span>
-                <input type="text" name="search" class="form-control border-0 bg-transparent ps-2"
-                       placeholder="Tìm theo tên hoặc MSSV..." value="<?= htmlspecialchars($search) ?>">
-            </div>
-        </div>
+<form method="GET" action="<?=BASE_URL?>/sinhvien/index" class="mb-3">
+  <input type="hidden" name="sortBy"  value="<?=htmlspecialchars($sortBy)?>">
+  <input type="hidden" name="sortDir" value="<?=htmlspecialchars($sortDir)?>">
+  <div class="input-group flex-wrap" style="max-width:900px">
+    <input type="text" name="search" class="form-control"
+           placeholder="🔍 Tìm theo họ tên, MSSV hoặc lớp..."
+           value="<?=htmlspecialchars($search)?>" style="min-width:200px">
 
-        <div class="col-6 col-md-2">
-            <select name="xepLoai" class="form-select rounded-3 text-secondary" aria-label="Lọc theo xếp loại">
-                <option value="" <?= $xepLoai === '' ? 'selected' : '' ?>>Học lực: Tất cả</option>
-                <option value="xuat_sac" <?= $xepLoai === 'xuat_sac' ? 'selected' : '' ?>>⭐ Xuất Sắc</option>
-                <option value="gioi" <?= $xepLoai === 'gioi' ? 'selected' : '' ?>>🥇 Giỏi</option>
-                <option value="kha" <?= $xepLoai === 'kha' ? 'selected' : '' ?>>👍 Khá</option>
-                <option value="trung_binh" <?= $xepLoai === 'trung_binh' ? 'selected' : '' ?>>📊 Trung Bình</option>
-                <option value="yeu" <?= $xepLoai === 'yeu' ? 'selected' : '' ?>>⚠️ Yếu</option>
-            </select>
-        </div>
+    <select name="xepLoai" class="form-select" style="max-width:150px">
+      <option value="">Tất cả</option>
+      <option value="xuat_sac"   <?=$xepLoai==='xuat_sac'?'selected':''?>>⭐ Xuất Sắc</option>
+      <option value="gioi"       <?=$xepLoai==='gioi'?'selected':''?>>🥇 Giỏi</option>
+      <option value="kha"        <?=$xepLoai==='kha'?'selected':''?>>👍 Khá</option>
+      <option value="trung_binh" <?=$xepLoai==='trung_binh'?'selected':''?>>📊 TB</option>
+      <option value="yeu"        <?=$xepLoai==='yeu'?'selected':''?>>⚠️ Yếu</option>
+    </select>
 
-        <div class="col-6 col-md-3">
-            <select name="nganh" class="form-select rounded-3 text-secondary">
-                <option value="">Chuyên ngành: Tất cả</option>
-                <?php foreach($danhSachNganh as $ng): ?>
-                <option value="<?= htmlspecialchars($ng) ?>" <?= $nganh === $ng ? 'selected' : '' ?>>
-                    <?= htmlspecialchars($ng) ?>
-                </option>
-                <?php endforeach; ?>
-            </select>
-        </div>
-        
-        <div class="col-12 col-md-3 d-flex gap-2">
-            <button type="submit" class="btn btn-secondary rounded-3 px-3 flex-grow-1 fw-medium">Lọc dữ liệu</button>
-            <?php if (!empty($search) || !empty($xepLoai) || !empty($nganh)): ?>
-                <a href="<?= BASE_URL ?>/sinhvien/index" class="btn btn-outline-secondary rounded-3 d-inline-flex align-items-center justify-content-center" title="Xoá tất cả bộ lọc"><i class="bi bi-x-lg"></i></a>
-            <?php endif; ?>
-        </div>
+    <select name="nganh" class="form-select" style="max-width:170px">
+      <option value="">📚 Tất cả ngành</option>
+      <?php foreach($danhSachNganh as $ng): ?>
+      <option value="<?=htmlspecialchars($ng)?>" <?=$nganh===$ng?'selected':''?>>
+        <?=htmlspecialchars($ng)?>
+      </option>
+      <?php endforeach; ?>
+    </select>
 
-    </div>
+    <select name="lop" class="form-select" style="max-width:170px">
+      <option value="">🏫 Tất cả lớp</option>
+      <?php foreach($danhSachLop as $l): ?>
+      <option value="<?=$l['id']?>" <?=(string)$lop===(string)$l['id']?'selected':''?>>
+        <?=htmlspecialchars($l['ma_lop'])?>
+      </option>
+      <?php endforeach; ?>
+    </select>
+
+    <button type="submit" class="btn btn-primary">Lọc</button>
+    <?php if(!empty($search)||!empty($xepLoai)||!empty($nganh)||!empty($lop)): ?>
+    <a href="<?=BASE_URL?>/sinhvien/index" class="btn btn-outline-secondary">✕ Xoá lọc</a>
+    <?php endif; ?>
+  </div>
 </form>
 
 <div class="table-responsive rounded-4 border bg-white shadow-sm mb-4">
@@ -134,7 +136,7 @@ function getXepLoai(?float $gpa): array {
         <td>
           <?php if (!empty($sv['ma_lop'])): ?>
           <span class="badge rounded-pill bg-primary-subtle text-primary px-25 py-1 fw-medium">
-            <?= htmlspecialchars($sv['ma_lop']) ?> — <?= htmlspecialchars($sv['lop_nganh'] ?? 'Chưa xác định') ?>
+            <?= htmlspecialchars($sv['ma_lop']) ?>
           </span>
           <?php else: ?>
           <span class="badge rounded-pill bg-secondary-subtle text-secondary px-25 py-1 fw-medium">Chưa xếp lớp</span>
@@ -158,10 +160,10 @@ function getXepLoai(?float $gpa): array {
             </span>
         </td>
         <td style="max-width: 150px;">
-            <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="<?php echo htmlspecialchars($sv['ghi_chu']); ?>">
-                <?php echo !empty($sv['ghi_chu']) ? htmlspecialchars($sv['ghi_chu']) : '—'; ?>
-            </div>
-        </td>
+        <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="<?php echo htmlspecialchars($sv['ghi_chu']); ?>">
+            <?php echo !empty($sv['ghi_chu']) ? htmlspecialchars($sv['ghi_chu']) : '—'; ?>
+        </div>
+    </td>
         <td class="text-center pe-4">
             <div class="d-inline-flex gap-1">
                 <a href="<?= BASE_URL ?>/sinhvien/diem/<?= $sv['id'] ?>"
@@ -194,7 +196,7 @@ function getXepLoai(?float $gpa): array {
 
     <li class="page-item <?= $currentPage <= 1 ? 'disabled' : '' ?>">
       <a class="page-link rounded-3 border-0 bg-light text-secondary px-3"
-         href="<?= BASE_URL ?>/sinhvien/index?page=<?= $currentPage - 1 ?>&search=<?= urlencode($search) ?>&xepLoai=<?= urlencode($xepLoai) ?>&nganh=<?= urlencode($nganh) ?>">
+         href="<?= BASE_URL ?>/sinhvien/index?page=<?= $currentPage - 1 ?>&search=<?= urlencode($search) ?>&xepLoai=<?= urlencode($xepLoai) ?>&nganh=<?= urlencode($nganh) ?>&lop=<?= urlencode($lop) ?>">
          <i class="bi bi-chevron-left small"></i> Trước
       </a>
     </li>
@@ -203,7 +205,7 @@ function getXepLoai(?float $gpa): array {
       <li class="page-item <?= $i === $currentPage ? 'active' : '' ?>">
         <a class="page-link rounded-3 border-0 px-3 fw-medium mx-05 <?= $i === $currentPage ? 'shadow-sm' : 'bg-light text-dark' ?>"
           style="<?= $i === $currentPage ? 'background:#3f51b5 !important; color:#ffffff !important;' : '' ?>"
-          href="<?= BASE_URL ?>/sinhvien/index?page=<?= $i ?>&search=<?= urlencode($search) ?>&xepLoai=<?= urlencode($xepLoai) ?>&nganh=<?= urlencode($nganh) ?>"
+          href="<?= BASE_URL ?>/sinhvien/index?page=<?= $i ?>&search=<?= urlencode($search) ?>&xepLoai=<?= urlencode($xepLoai) ?>&nganh=<?= urlencode($nganh) ?>&lop=<?= urlencode($lop) ?>"
           aria-label="Trang <?= $i ?>" <?= $i === $currentPage ? 'aria-current="page"' : '' ?>>
           <?= $i ?>
         </a>
@@ -212,7 +214,7 @@ function getXepLoai(?float $gpa): array {
 
     <li class="page-item <?= $currentPage >= $totalPage ? 'disabled' : '' ?>">
       <a class="page-link rounded-3 border-0 bg-light text-secondary px-3"
-         href="<?= BASE_URL ?>/sinhvien/index?page=<?= $currentPage + 1 ?>&search=<?= urlencode($search) ?>&xepLoai=<?= urlencode($xepLoai) ?>&nganh=<?= urlencode($nganh) ?>">
+         href="<?= BASE_URL ?>/sinhvien/index?page=<?= $currentPage + 1 ?>&search=<?= urlencode($search) ?>&xepLoai=<?= urlencode($xepLoai) ?>&nganh=<?= urlencode($nganh) ?>&lop=<?= urlencode($lop) ?>">
          Tiếp <i class="bi bi-chevron-right small"></i>
       </a>
     </li>

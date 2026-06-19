@@ -104,17 +104,18 @@ class SinhvienModel extends Model
     }
 
     /**
-     * Phân trang và tìm kiếm sinh viên
-     * FIX: Thêm ép kiểu dữ liệu cho tham số đầu vào và mảng trả về (Intelephense)
+     * Phân trang, tìm kiếm và lọc dữ liệu sinh viên nâng cao
+     * FIX 1: Thêm tham số $lop nhận giá trị lọc lớp từ bộ lọc điều hướng
+     * FIX 2: Bổ sung LEFT JOIN tbl_lops l để lấy thông tin hiển thị cột Lớp học
      */
-    public function paging($limit = 5, $offset = 0, string $search = "", string $xepLoai = "", string $nganh = ""): array
+    public function paging($limit = 5, $offset = 0, string $search = "", string $xepLoai = "", string $nganh = "", string $lop = ""): array
     {
         // Subquery tính GPA có trọng số tín chỉ
         $gpaSub = "(SELECT ROUND(
                         SUM(d2.diem_tong_ket * m2.so_tin_chi) / SUM(m2.so_tin_chi), 2
                     )
                     FROM tbl_diems d2
-                    JOIN tbl_monhocs m2 ON d2.monhoc_id = m2.id
+                    LEFT JOIN tbl_monhocs m2 ON d2.monhoc_id = m2.id
                     WHERE d2.sinhvien_id = sv.id)";
 
         // Xây dựng điều kiện WHERE
@@ -145,11 +146,18 @@ class SinhvienModel extends Model
             $bindParams[':nganh'] = $nganh;
         }
 
+        // FIX LỖI BỘ LỌC: Nếu có chọn lớp cụ thể, lọc theo ID của lớp
+        if (!empty($lop)) {
+            $conditions[] = "sv.lop_id = :lop";
+            $bindParams[':lop'] = (int)$lop;
+        }
+
         $where = !empty($conditions) ? 'WHERE ' . implode(' AND ', $conditions) : '';
 
-        // Query chính — thêm cột gpa
-        $query = "SELECT sv.*, $gpaSub AS gpa
+        // FIX LỖI HIỂN THỊ DANH SÁCH: Thực hiện LEFT JOIN để lấy thông tin ma_lop và nganh (lop_nganh) từ bảng lớp
+        $query = "SELECT sv.*, $gpaSub AS gpa, l.ma_lop, l.nganh AS lop_nganh
                   FROM tbl_sinhviens sv
+                  LEFT JOIN tbl_lops l ON sv.lop_id = l.id
                   $where
                   ORDER BY sv.id ASC
                   LIMIT :limit OFFSET :offset";
@@ -163,7 +171,7 @@ class SinhvienModel extends Model
         $stmt->execute();
         $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Đếm tổng bản ghi
+        // Đếm tổng bản ghi tương ứng bộ lọc
         $countStmt = $this->conn->prepare(
             "SELECT COUNT(*) FROM tbl_sinhviens sv $where"
         );

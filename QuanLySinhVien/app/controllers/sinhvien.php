@@ -17,7 +17,7 @@ class Sinhvien extends Controller
         $search  = isset($_GET['search'])  ? trim(  $_GET['search']) : '';
         $xepLoai = isset($_GET['xepLoai']) ? trim(  $_GET['xepLoai']) : '';
         $nganh   = isset($_GET['nganh'])   ? trim(  $_GET['nganh'])   : '';
-        $lop     = isset($_GET['lop'])     ? (int)  $_GET['lop']     : '';
+        $lop     = isset($_GET['lop'])     ? trim(  $_GET['lop']     ) : '';
         $sortBy  = isset($_GET['sortBy'])  ? trim(  $_GET['sortBy']) : 'id';
         $sortDir = isset($_GET['sortDir']) ? trim(  $_GET['sortDir']) : 'ASC';
 
