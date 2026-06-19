@@ -3,8 +3,7 @@
 # Hệ Thống Quản Lý Sinh Viên
 
 > **Học phần:** Phần mềm Nguồn Mở &nbsp;|&nbsp; **Lớp:** 68PM4  
-> **Sinh viên:** Nguyễn Ngọc Sơn &nbsp;|&nbsp; **MSSV:** 0023868  
-> **Giảng viên hướng dẫn:** Lương Xuân Hiếu
+> **Sinh viên:** Nguyễn Ngọc Sơn &nbsp;|&nbsp; **MSSV:** 0023868
 
 ---
 

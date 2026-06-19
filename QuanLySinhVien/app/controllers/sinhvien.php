@@ -90,7 +90,7 @@ class Sinhvien extends Controller
         $lopId    = (!empty($lopPost) && !is_array($lopPost)) ? (int)$lopPost : null;
         
         $ghiChu   = trim($_POST['ghi_chu']  ?? '');
-        $diems    = $_POST['diems']         ?? [];
+        $diems   = $_POST['diems']         ?? [];
 
         if (empty($hoten) || empty($gioitinh) || empty($mssv) || empty($nganh)) {
             return 'Vui lòng điền đầy đủ thông tin bắt buộc!';
@@ -172,21 +172,24 @@ class Sinhvien extends Controller
         $nganh    = trim($_POST['nganh'] ?? '');
         $lopId    = !empty($_POST['lop_id']) ? (int)$_POST['lop_id'] : null;
         $ghiChu   = trim($_POST['ghi_chu'] ?? '');
-        $diems    = $_POST['diem'] ?? [];
+        $diems    = $_POST['diems'] ?? [];
 
         // Giữ lại tên ảnh cũ làm mặc định
         $anhDaiDien = $sinhvien['anh_dai_dien'] ?? null;
 
         // Xử lý nếu người dùng có chọn file ảnh mới để upload
-        if (!empty($_FILES['anh_dai_dien']['name'])) {
+        if (!empty($_FILES['anh_dai_dien']['name']) && $_FILES['anh_dai_dien']['error'] === UPLOAD_ERR_OK) {
             $uploadResult = $this->uploadAnh($_FILES['anh_dai_dien']);
             if (!$uploadResult['success']) {
                 return $uploadResult['error'];
             }
             
-            // Xoá file ảnh cũ trong thư mục nếu có
-            if (!empty($sinhvien['anh_dai_dien']) && file_exists(self::UPLOAD_DIR . $sinhvien['anh_dai_dien'])) {
-                @unlink(self::UPLOAD_DIR . $sinhvien['anh_dai_dien']);
+            // SỬA TẠI ĐÂY: Tính đường dẫn tuyệt đối chuẩn xác để xóa file cũ trên ổ đĩa
+            $projectRoot = dirname(__DIR__, 2);
+            $realUploadDir = $projectRoot . '/' . ltrim(self::UPLOAD_DIR, '/');
+            
+            if (!empty($sinhvien['anh_dai_dien']) && file_exists($realUploadDir . $sinhvien['anh_dai_dien'])) {
+                @unlink($realUploadDir . $sinhvien['anh_dai_dien']);
             }
             
             // Gán tên file mới sinh ra
@@ -195,7 +198,6 @@ class Sinhvien extends Controller
         }
 
         // Gọi Model thực hiện cập nhật vào Database
-        // ĐẢM BẢO biến $anhDaiDien được truyền đúng vị trí tham số thứ 8
         $result = $model->update($id, $hoten, $gioitinh, $mssv, $nganh, $lopId, $ghiChu, $anhDaiDien, $diems);
 
         if (!$result['success']) {
@@ -264,17 +266,24 @@ class Sinhvien extends Controller
         } elseif (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
             $errorMsg = 'Lỗi khi tải ảnh lên, vui lòng thử lại!';
         } else {
-            // FIX ĐƯỜNG DẪN: Buộc phải lưu vào thư mục public để trình duyệt đọc được công khai
-            $uploadDir = self::UPLOAD_DIR;
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0755, true);
+            // 1. Xác định thư mục gốc của dự án bằng cách lùi từ file hiện tại (đảm bảo chuẩn xác 100%)
+            // __DIR__ là thư mục chứa file Sinhvien.php hiện tại (ví dụ: app/controllers)
+            // dirname(__DIR__, 2) sẽ đi lùi 2 cấp để về tận gốc dự án (QuanLySinhVien)
+            $projectRoot = dirname(__DIR__, 2);
+
+            // 2. Kết hợp với hằng số UPLOAD_DIR để ra đường dẫn tuyệt đối trên ổ đĩa
+            $realUploadDir = $projectRoot . '/' . ltrim(self::UPLOAD_DIR, '/');
+
+            // 3. Kiểm tra và tự động tạo thư mục nếu chưa có
+            if (!is_dir($realUploadDir)) {
+                mkdir($realUploadDir, 0755, true);
             }
 
             $filename = uniqid('sv_', true) . '.' . $ext;
-            
-            // Thực hiện di chuyển file ảnh vào thư mục đích
-            if (!move_uploaded_file($file['tmp_name'] ?? '', $uploadDir . $filename)) {
-                $errorMsg = 'Không thể lưu ảnh vào server!';
+
+            // 4. Thực hiện di chuyển file ảnh vào thư mục đích thật trên ổ đĩa
+            if (!move_uploaded_file($file['tmp_name'] ?? '', $realUploadDir . $filename)) {
+                $errorMsg = 'Không thể lưu ảnh vào server! Vui lòng kiểm tra quyền ghi thư mục.';
             }
         }
 
